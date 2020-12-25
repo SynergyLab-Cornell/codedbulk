@@ -1,0 +1,5 @@
+total_num_traffic	total_num_destinations	load	Steiner_tree_multicast(total_mean,total_std_dev)	single_path_multicast(total_mean,total_std_dev)	multi_path_multicast(total_mean,total_std_dev)	coded_multicast(total_mean,total_std_dev)	Steiner_tree_store-and-forward_memory(total_mean,total_std_dev)
+6	3	0.05	498.521	60.523	324.196	19.417	404.375	29.520	653.663	60.658	515.118	81.109
+6	3	0.1	493.891	96.412	309.012	20.763	383.009	28.939	616.227	56.400	487.381	80.134
+6	3	0.15	447.967	24.233	296.680	78.281	352.181	59.890	560.079	16.662	450.118	33.355
+6	3	0.2	339.594	61.250	229.804	18.120	301.615	25.027	483.628	32.225	347.556	59.495

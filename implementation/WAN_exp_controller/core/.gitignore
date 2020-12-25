@@ -1,0 +1,8 @@
+log_error_reasons.json
+server_information.py
+!tools/*
+tools/__pycache__/*
+results/raw/*
+results/raw
+__pycache__/*
+download_summary.sh

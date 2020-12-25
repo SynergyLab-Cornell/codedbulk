@@ -1,0 +1,86 @@
+/***********
+ * Traffic Gen
+ ***********/
+#include "../settings/topology/topology_macros.h"
+  #define STR(X) XSTR(X)
+  #define XSTR(X) #X
+  #define TOPOLOGY_ADDRESS(X) STR(../settings/topology/X.cc_part)
+#include TOPOLOGY_ADDRESS(TOPOLOGY_NAME)
+#include "../settings/traffic/traffic_utils.h"
+#include "unif-random-variable.h"
+#include "CodedBulk-controller.h"
+#include <iostream>
+#include <string>
+#include <stdlib.h>
+#include <sstream>
+using namespace std;
+
+#ifndef TOTAL_LOADS
+  #define TOTAL_LOADS 4
+#endif
+
+int main(int argc, char* argv[]){
+  int total_num_sources      = 6;
+  int total_num_destinations = 4;
+
+  double workload[TOTAL_LOADS] = {0.05, 0.1, 0.15, 0.2};
+
+  cout << "number of sources = " << total_num_sources << endl;
+  cout << "number of destinations = " << total_num_destinations << endl;
+
+  for(int load = 0; load < TOTAL_LOADS; ++load) {
+    cout << "workload = " << workload[load] << endl;
+    std::stringstream sim_name;
+    sim_name << STR(TOPOLOGY_NAME) << "-interactive-" << workload[load];
+
+    CodedBulkController::__simualtion_name=sim_name.str();
+
+    #include "../settings/controller_setup.cc_part"
+
+    GENERATE_TOPOLOGY()
+
+    std::stringstream workload_name;
+    workload_name << STR(WORKLOAD_PREFIX) << "-" << workload[load];
+
+    CodedBulk_controller->SetInteractiveWorkloadFile(workload_name.str());
+
+    traffic_manager->clearAllCodedBulkTraffic();
+
+    Ptr<CodedBulkTraffic> traffic_at_source[TOTAL_HOSTS];
+    uint64_t RANDOM_SEED = 0;
+    if( traffic_manager->GetTrafficNotGenerated() ) {
+      std::set<int> sources;
+      std::set<int> non_sources;
+
+      Ptr<CodedBulkTraffic> traffic;
+
+      // geberate total_num_sources multicast flows
+      sources = UniformlyGenerateNodesWithin (TOTAL_HOSTS, total_num_sources, -1, 0);
+      for(std::set<int>::iterator
+        it_src  = sources.begin();
+        it_src != sources.end();
+        ++it_src
+      ) {
+        traffic = traffic_manager->addCodedBulkTraffic(*it_src);
+        traffic->ApplyCodedBulk(true);
+        traffic->SetUnicast(false);
+        traffic->SetPriority(CodedBulkTraffic::Bulk);
+
+        std::set<int> destinations = UniformlyGenerateNodesWithin (TOTAL_HOSTS, total_num_destinations, *it_src, RANDOM_SEED++);
+        for(std::set<int>::iterator
+          it_dst  = destinations.begin();
+          it_dst != destinations.end();
+          ++it_dst
+        ) {
+          traffic->addDst(*it_dst);
+        }
+        traffic_at_source[*it_src] = traffic;
+      }
+      traffic_manager->SetTrafficNotGenerated(false);
+    }
+
+    CodedBulk_controller->GenerateAllFiles();
+  }
+
+  return 0;
+}

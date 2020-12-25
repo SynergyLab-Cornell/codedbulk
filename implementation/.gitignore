@@ -1,0 +1,10 @@
+*/build/*
+!*/build/__PLACE_HOLDER__
+*/executable/*
+!*/executable/__PLACE_HOLDER__
+*/tests/*
+apps/*/exec-*
+apps/*/gmon*
+!apps/*/results/__PLACE_HOLDER__
+.node_info
+apps/*

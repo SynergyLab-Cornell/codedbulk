@@ -1,0 +1,20 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_SWITCHES 3
+graph->addNodes(TOTAL_SWITCHES);
+
+// one link topology
+/*
+   0 - 1 - 2
+*/
+
+// link the switches
+LINK_SW_TO_SW(0,1,1.0)
+LINK_SW_TO_SW(1,2,1.0)
+
+REG_SW_ADDR(0,"128.84.155.85") // atlas-22
+REG_SW_ADDR(1,"128.84.155.86") // atlas-23
+REG_SW_ADDR(2,"128.84.155.87") // atlas-24
+
+#endif // __TOPOLOGY_MACROS__
