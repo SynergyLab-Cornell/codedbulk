@@ -1,0 +1,53 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+// control plane
+Ptr<ns3::ofi::OpenFlowRoutingController> controller = CreateObject<ns3::ofi::OpenFlowRoutingController> ();
+// CodedBulkController uses greedy multipath routing and Jaggi 2005 coding algorithm as the default
+CodedBulk_controller->SetOpenFlowController (controller);
+
+int map_host_to_sw[TOTAL_HOSTS];
+
+// data plane
+Config::SetDefault ("ns3::OpenFlowSwitchNetDevice::FlowTableLookupDelay", TimeValue (NanoSeconds (0)));
+
+NodeContainer nodeSwitches;
+nodeSwitches.Create(TOTAL_SWITCHES);
+Ptr<Node> sw[TOTAL_SWITCHES];
+Ptr<OpenFlowRoutingSwitch> ofs[TOTAL_SWITCHES];
+Ptr<CodedBulkCodecManager> codec[TOTAL_SWITCHES];
+Ptr<CodedBulkProxy> proxy[TOTAL_SWITCHES];
+graph->initialize ();
+graph->addNodes(TOTAL_SWITCHES);
+for(int n = 0; n < TOTAL_SWITCHES; ++n) {
+   sw[n] = nodeSwitches.Get(n);
+   ofs[n] = CreateObject<OpenFlowRoutingSwitch> ();
+   codec[n] = Create<CodedBulkCodecManager> ();
+   proxy[n] = Create<CodedBulkProxy> ();
+   ofs[n]->SetProxy(proxy[n]);
+   sw[n]->AddDevice(ofs[n]);
+   sw[n]->AddApplication(proxy[n]);
+   ofs[n]->SetController(controller);
+   ofs[n]->SetCodecManager(codec[n]);
+}
+
+// create hosts
+NodeContainer nodeHosts;
+nodeHosts.Create(TOTAL_HOSTS);
+Ptr<Node> host[TOTAL_HOSTS];
+for(int h = 0; h < TOTAL_HOSTS; ++h) {
+   host[h] = nodeHosts.Get(h);
+}
+
+// finish adding the switches
+controller->InitializeOutputMap();
+
+CodedBulkSimpleNetDeviceHelper helperCodedBulkSimple;
+helperCodedBulkSimple.SetQueue("ns3::DropTailQueue",
+  "MaxSize", QueueSizeValue (QueueSize ("1000000000p"))
+);
+//  "Mode",     StringValue   ("QUEUE_MODE_BYTES"),
+//  "MaxBytes", UintegerValue (50*1000) // 40M
+//  "Mode",       StringValue   ("QUEUE_MODE_PACKETS"),
+//  "MaxPackets", UintegerValue (1000000000)
+//);
+Ptr<SimpleNetDevice> devHosts[TOTAL_HOSTS];
+NetDeviceContainer devLink;

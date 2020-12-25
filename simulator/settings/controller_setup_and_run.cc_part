@@ -1,0 +1,19 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+    CodedBulk_controller->SetApplicationParameters(
+      TcpSocketFactory::GetTypeId (),
+      Seconds (APP_START_TIME),
+      Seconds (APP_STOP_TIME)
+    );
+
+    std::cout << "find paths" << std::endl;
+    CodedBulk_controller->ComputeAllPaths ();
+    std::cout << "find codecs" << std::endl;
+    CodedBulk_controller->GenerateAllCodes ();
+    std::cout << "create applications" << std::endl;
+    CodedBulk_controller->CreateAllApplications ();
+
+    CodedBulk_controller->EstablishAllPaths ();
+
+    Simulator::Stop (Seconds (APP_STOP_TIME));
+    Simulator::Run ();
+    Simulator::Destroy ();

@@ -1,0 +1,46 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_HOSTS 13
+#define TOTAL_SWITCHES 13
+
+// B4 topology according to 
+// https://datatracker.ietf.org/meeting/99/materials/slides-99-panrg-sdn-for-public-internet/
+
+#define GENERATE_TOPOLOGY() \
+\
+/* link hosts to the data plane */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("0us"));\
+for(int h = 0; h < TOTAL_HOSTS; ++h){\
+  /* each node is a switch */\
+  LINK_HOST_TO_SW(h,h)\
+}\
+\
+/* link the switches */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue (BANDWIDTH));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("500us"));\
+LINK_SW_TO_SW( 0, 1,1.0)\
+LINK_SW_TO_SW( 0, 3,1.0)\
+LINK_SW_TO_SW( 1, 2,1.0)\
+LINK_SW_TO_SW( 2, 3,1.0)\
+LINK_SW_TO_SW( 2, 4,1.0)\
+LINK_SW_TO_SW( 2,12,1.0)\
+LINK_SW_TO_SW( 3, 4,1.0)\
+LINK_SW_TO_SW( 3, 5,1.0)\
+LINK_SW_TO_SW( 3,12,1.0)\
+LINK_SW_TO_SW( 4, 6,1.0)\
+LINK_SW_TO_SW( 4, 7,1.0)\
+LINK_SW_TO_SW( 5, 6,1.0)\
+LINK_SW_TO_SW( 5, 7,1.0)\
+LINK_SW_TO_SW( 6, 7,1.0)\
+LINK_SW_TO_SW( 6, 9,1.0)\
+LINK_SW_TO_SW( 7,10,1.0)\
+LINK_SW_TO_SW( 7,12,1.0)\
+LINK_SW_TO_SW( 8, 9,1.0)\
+LINK_SW_TO_SW( 8,10,1.0)\
+LINK_SW_TO_SW( 9,10,1.0)\
+LINK_SW_TO_SW( 9,11,1.0)\
+LINK_SW_TO_SW(10,11,1.0)\
+
+#endif // __TOPOLOGY_MACROS__

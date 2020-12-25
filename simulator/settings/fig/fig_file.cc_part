@@ -1,0 +1,38 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+  system("mkdir -p results/raw");
+
+  bool fout_exist_before = true;
+
+  std::ostringstream convert;
+  convert << "results/" << sim_name << ".dat";
+
+  {
+    std::ifstream ftest(convert.str().c_str());
+    if (!ftest) {
+      fout_exist_before = false;
+    } else {
+      ftest.close();
+    }
+  }
+
+  fout.open (convert.str().c_str(), std::ios::app);
+  if( !fout ) {
+    std::cout << "Cannot create the result file " << convert.str() << std::endl;
+    return -1;
+  }
+
+  std::ostringstream convert_raw;
+  convert_raw << "results/raw/" << sim_name << "-raw" << sim_serial.str() << ".dat";
+  fout_raw.open (convert_raw.str().c_str());
+  if( !fout_raw ) {
+    std::cout << "Cannot create the result file " << convert_raw.str() << std::endl;
+    return -1;
+  }
+
+  std::ostringstream convert_rawd;
+  convert_rawd << "results/raw/" << sim_name << "-rawd" << sim_serial.str() << ".dat";
+  fout_rawd.open (convert_rawd.str().c_str());
+  if( !fout_rawd ) {
+    std::cout << "Cannot create the result file " << convert_rawd.str() << std::endl;
+    return -1;
+  }

@@ -1,0 +1,245 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#define TOTAL_SCENARIOS 7
+    double sum_average[TOTAL_SCENARIOS][3][2];
+    // total/bulk/interactive
+    // value/stderr
+    double aggregated[3];
+
+    double measure_start_time = APP_STOP_TIME - 100.0;
+    if (measure_start_time < 0) {
+      // measure the last half
+      measure_start_time = APP_STOP_TIME /2;
+    }
+
+    std::string scenario_name[TOTAL_SCENARIOS];
+    scenario_name[0] = "Steiner_tree_multicast";
+    scenario_name[1] = "single_path_multicast";
+    scenario_name[2] = "multi_path_multicast";
+    scenario_name[3] = "coded_multicast";
+    scenario_name[4] = "Steiner_tree_without_merging_(coding)";
+    scenario_name[5] = "Steiner_tree_store-and-forward_disk";
+    scenario_name[6] = "Steiner_tree_store-and-forward_memory";
+    // backup, in case we want to test as well...
+    //scenario_name[6] = "CodedBulk store-and-forward";
+
+    if (!fout_exist_before) {
+      #ifndef FIG_INTERACTIVE
+        fout << "total_num_traffic" << "\t" << "total_num_destinations";
+      #else
+        fout << "load";
+      #endif
+      for(int scenario = 0; scenario < TOTAL_SCENARIOS; ++scenario) {
+        // non-coded single path, non-coded multipath, coded, non-coded Steiner tree
+        for(int k = 0; k < 3; ++k) {
+          for(int j = 0; j < 2; ++j) {
+            sum_average[scenario][k][j] = 0.0;
+          }
+        }
+        #ifndef FIG_INTERACTIVE
+          fout << "\t" << scenario_name[scenario] << "(total_mean,total_std_err)";
+        #else
+          fout << "\t" << scenario_name[scenario] << "(total_mean,total_std_err,bulk_mean,bulk_std_err,interactive_mean,interactive_std_err)";
+        #endif
+      }
+      fout << std::endl;
+    }
+
+    fout_raw << "number of sources = " << TOTAL_NUM_TRAFFIC << std::endl;
+    fout_raw << "number of destinations = " << total_num_destinations << std::endl;
+  
+    for(int experiment = 0; experiment < TOTAL_EXPERIMENTS; ++experiment) {//TOTAL_EXPERIMENTS;
+      traffic_manager->clearAllCodedBulkTraffic();
+  
+      Ptr<CodedBulkTraffic> traffic_at_source[TOTAL_HOSTS];
+
+      SeedManager::SetSeed(experiment+1);
+
+      for (int scenario = 0; scenario < TOTAL_SCENARIOS; ++scenario) {
+        if (scenario == 5) {
+        //if ((scenario != 3) && (scenario != 6)) {
+          Simulator::Destroy();
+          continue;
+        }
+
+        CodedBulkCodec::setStoreAndForward (scenario == 5); // >=
+        if (scenario == 6) {
+          // 40000 KB = 40 MB
+          CodedBulkProxy::setInputBufferSize(MAX_PROXY_INPUT_BUFFER_SIZE);
+        } else {
+          CodedBulkProxy::setDefaultInputBufferSize();
+        }
+        
+        std::cout << scenario_name[scenario] << std::endl;
+        fout_rawd << scenario_name[scenario] << std::endl;
+
+        ResetFigMeasureVariables ();
+        /*
+        switch (scenario) {
+          case 1:
+          case 2:
+          case 4:
+          case 5:
+            break;
+          default:
+            Simulator::Destroy();
+            continue;
+        }
+        */
+        #include "settings/topology/topology_creation.cc_part"
+        GENERATE_TOPOLOGY()
+        #include "settings/topology/topology_setup_ipv4.cc_part"
+
+        #include "settings/fig/fig_traffic_generation.cc_part"
+  
+        for(int traffic_src = 0; traffic_src < TOTAL_HOSTS; ++traffic_src) {
+          // coded flows
+          if(traffic_at_source[traffic_src] == NULL) {
+            continue;
+          }
+          if( traffic_at_source[traffic_src]->_priority == CodedBulkTraffic::Bulk ) {
+            /*
+            traffic_at_source[traffic_src]->SetUnicast(scenario == 0);
+            traffic_at_source[traffic_src]->ApplyCodedBulk(scenario == 2);
+            */
+            traffic_at_source[traffic_src]->IsCodedBulk(
+              (scenario == 3)    // coded multicast
+            );
+            traffic_at_source[traffic_src]->ApplyCodedBulk(
+              (scenario == 0) || // Steiner tree multicast
+              (scenario == 2) || // multi_path_multicast -> we need CodedBulk to perform multipath
+              (scenario == 3) || // coded multicast
+              (scenario == 5) || // Steiner tree store-and-forward disk
+              (scenario == 6)    // Steiner tree store-and-forward memory
+            );
+            traffic_at_source[traffic_src]->SetUnicast(
+              (scenario == 1) || // single path multicast
+              (scenario == 4)    // Steiner tree without merging (coding)
+            );
+            traffic_at_source[traffic_src]->SetSteinerTree(
+              (scenario == 0) || // Steiner tree multicast
+              (scenario == 4) || // Steiner tree without merging (coding)
+              (scenario == 5) || // Steiner tree store-and-forward disk
+              (scenario == 6)    // Steiner tree store-and-forward memory
+            );
+          }
+        }
+
+        switch(scenario) {
+          case 0: // Steiner tree multicast
+          case 4: // Steiner tree without merging (coding)
+          case 5: // Steiner tree store-and-forward disk
+          case 6: // Steiner tree store-and-forward memory
+            CodedBulk_controller->SetRoutingAlgorithm (Create<CodedBulkWatel2014SteinerRouting> ());
+            break;
+          default:
+            CodedBulk_controller->SetRoutingAlgorithm (Create<CodedBulkGreedyRouting> ());
+            break;
+        }
+        CodedBulk_controller->InitializeAlgorithms();
+
+        // measure the last 100 seconds
+        for(double t = measure_start_time; t < APP_STOP_TIME; t += 1.0) {
+          Simulator::Schedule (Seconds (t), &RecordAggregateThroughput, traffic_manager);
+        }
+  
+        CodedBulk_controller->SetApplicationParameters(
+          TcpSocketFactory::GetTypeId (),
+          Seconds (APP_START_TIME),
+          Seconds (APP_STOP_TIME)
+        );
+  
+        CodedBulk_controller->ComputeAllPaths ();
+
+        //std::cout << "exp = " << experiment << std::endl;
+        //for (auto traff : traffic_manager->m_traffic){
+        //  traff->listAllPathSets(std::cout);
+        //}
+        //Simulator::Destroy ();
+        //continue;
+
+        CodedBulk_controller->GenerateAllCodes ();
+        CodedBulk_controller->CreateAllApplications ();
+        
+        //#include "settings/path_codec_forward.cc_part"
+
+        CodedBulk_controller->EstablishAllPaths ();
+  
+        Simulator::Stop (Seconds (APP_STOP_TIME));
+        Simulator::Run ();
+        Simulator::Destroy ();
+  
+        if (scenario == 6) {
+          // check if input beffer was full during the simulation
+          for(int n = 0; n < TOTAL_SWITCHES; ++n) {
+            if( proxy[n]-> IsRecvBufferFull () ) {
+              std::cout << "[ERROR] Input buffer was full at proxy " << n << std::endl;
+              fout_rawd << "[ERROR] Input buffer was full at proxy " << n << std::endl;
+            }
+          }
+        }
+
+        // in KBps
+        if (total > 0) {
+          aggregated[0] = total_throughput / (total * 1000.0);
+        } else {
+          aggregated[0] = 0.0;
+        }
+        if (bulk_total > 0) {
+          aggregated[1] = bulk_total_throughput / (bulk_total * 1000.0);
+        } else {
+          aggregated[1] = 0.0;
+        }
+        if (interactive_total > 0) {
+          aggregated[2] = interactive_total_throughput / (interactive_total * 1000.0);
+        } else {
+          aggregated[2] = 0.0;
+        }
+        // coded flows
+        for(int k = 0; k < 3; ++k) {
+          // mean
+          sum_average[scenario][k][0] += aggregated[k];
+          // standard sample deviation
+          sum_average[scenario][k][1] += aggregated[k]*aggregated[k];
+
+          fout_raw << "\t" << aggregated[k];
+        }
+      }
+      fout_raw << std::endl;
+    }
+   
+    // to make the two files consistent
+    #ifndef FIG_INTERACTIVE
+      fout << TOTAL_NUM_TRAFFIC << "\t" << total_num_destinations;
+    #else
+      fout << load;
+    #endif
+    for(int scenario = 0; scenario < TOTAL_SCENARIOS; ++scenario) {
+      if(scenario == 5)  continue;
+      for(int k = 0; k < 3; ++k){
+        // mean
+        sum_average[scenario][k][0] /= TOTAL_EXPERIMENTS;
+        // standard sample deviation
+        sum_average[scenario][k][1] -= sum_average[scenario][k][0]*sum_average[scenario][k][0]*TOTAL_EXPERIMENTS;
+        sum_average[scenario][k][1] /= (TOTAL_EXPERIMENTS - 1);
+        sum_average[scenario][k][1] = sqrt(sum_average[scenario][k][1]);
+      }
+  
+      #ifndef FIG_INTERACTIVE
+        for(int j = 0; j < 2; ++j) {
+          fout << "\t" << sum_average[scenario][0][j];
+        }
+      #else
+        for(int k = 0; k < 3; ++k) {
+          for(int j = 0; j < 2; ++j) {
+            fout << "\t" << sum_average[scenario][k][j];
+          }
+        }
+      #endif
+      fout << std::flush;
+    }
+    fout << std::endl;
+
+
+  fout.close();
+  fout_raw.close();
+  fout_rawd.close();

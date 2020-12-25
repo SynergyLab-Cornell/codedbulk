@@ -1,0 +1,13 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifndef PATH_CODEC_FORWARD_OUT
+#define PATH_CODEC_FORWARD_OUT std::cout
+#endif
+  PATH_CODEC_FORWARD_OUT << "--- all paths ---" << std::endl;
+  traffic_manager->listAllCodedBulkTraffic (std::cout);
+  PATH_CODEC_FORWARD_OUT << "--- all codecs and forward rules ---" << std::endl;
+  for(int s = 0; s < TOTAL_SWITCHES; ++s) {
+    PATH_CODEC_FORWARD_OUT << "at node " << s << std::endl;
+    codec[s]->listVirtualLinks (PATH_CODEC_FORWARD_OUT);
+    proxy[s]->ListForwardRule (PATH_CODEC_FORWARD_OUT);
+    PATH_CODEC_FORWARD_OUT << std::endl;
+  }

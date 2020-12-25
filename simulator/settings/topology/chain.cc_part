@@ -1,0 +1,31 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_HOSTS 5
+#define TOTAL_SWITCHES 5
+
+// simple topology
+/*
+   0 - 1 - 2 - 3 - 4
+*/
+
+#define GENERATE_TOPOLOGY() \
+\
+/* link hosts to the data plane */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("0us"));\
+LINK_HOST_TO_SW(0,0)\
+LINK_HOST_TO_SW(1,1)\
+LINK_HOST_TO_SW(2,2)\
+LINK_HOST_TO_SW(3,3)\
+LINK_HOST_TO_SW(4,4)\
+\
+/* link the switches */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100KBps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("100us"));\
+LINK_SW_TO_SW(0,1,1.0)\
+LINK_SW_TO_SW(1,2,1.0)\
+LINK_SW_TO_SW(2,3,1.0)\
+LINK_SW_TO_SW(3,4,1.0)\
+
+#endif // __TOPOLOGY_MACROS__

@@ -1,0 +1,57 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+{
+// add Ipv4 interfaces to each host link
+// install now to enable traffic control layer
+InternetStackHelper helperInternetStack;
+helperInternetStack.Install(nodeHosts);
+
+Ipv4AddressHelper helperIpv4Address;
+helperIpv4Address.SetBase("10.1.1.0", "255.255.255.0");
+Ipv4Address addr[TOTAL_HOSTS];
+for(int h = 0; h < TOTAL_HOSTS; ++h) {
+   addr[h] = helperIpv4Address.Assign(NetDeviceContainer(devHosts[h])).GetAddress(0);
+}
+
+// proxy addresses
+helperInternetStack.Install(nodeSwitches);
+helperIpv4Address.SetBase("20.1.1.0", "255.255.255.0");
+Ipv4Address addrSw[TOTAL_SWITCHES];
+for(int n = 0; n < TOTAL_SWITCHES; ++n) {
+   addrSw[n] = helperIpv4Address.Assign(NetDeviceContainer(ofs[n])).GetAddress(0);
+   proxy[n]->SetBaseAddr(addrSw[n]);
+}
+
+// setup static routing and handle ARP
+Ipv4StaticRoutingHelper ipv4RoutingHelper;
+for(int n = 0; n < TOTAL_SWITCHES; ++n) {
+   Ptr<Ipv4StaticRouting> sr = ipv4RoutingHelper.GetStaticRouting(sw[n]->GetObject<Ipv4>());
+   Ptr<ArpL3Protocol> arp = sw[n]->GetObject<ArpL3Protocol> ();
+   for(int n1 = 0; n1 < TOTAL_SWITCHES; ++n1) {
+      sr->AddHostRouteTo (proxy[n1]->GetBaseAddr(), 1);
+      arp->AddCacheEntry (ofs[n], proxy[n1]->GetBaseAddr(), ofs[n1]->GetAddress());      
+   }
+}
+for(int h = 0; h < TOTAL_HOSTS; ++h) {
+   Ptr<Ipv4StaticRouting> sr  = ipv4RoutingHelper.GetStaticRouting(host[h]->GetObject<Ipv4>());
+   Ptr<ArpL3Protocol>     arp = host[h]->GetObject<ArpL3Protocol> ();
+   sr->AddHostRouteTo (addrSw[map_host_to_sw[h]], 1);
+   arp->AddCacheEntry (devHosts[h], addrSw[map_host_to_sw[h]], ofs[map_host_to_sw[h]]->GetAddress());
+
+   Ptr<Ipv4StaticRouting> srsw  = ipv4RoutingHelper.GetStaticRouting(sw[map_host_to_sw[h]]->GetObject<Ipv4>());
+   Ptr<ArpL3Protocol>     arpsw = sw[map_host_to_sw[h]]->GetObject<ArpL3Protocol> ();
+   srsw->AddHostRouteTo (addr[h], 1);
+   arpsw->AddCacheEntry (ofs[map_host_to_sw[h]], addr[h], devHosts[h]->GetAddress());
+   for(int d = 0; d < TOTAL_HOSTS; ++d) {
+      if( d == h ){
+         continue;
+      }
+      // to all other destinations
+      sr->AddHostRouteTo (addr[d], 1);
+      arp->AddCacheEntry (devHosts[h], addr[d], devHosts[d]->GetAddress());
+   }
+}
+
+for(int h = 0; h < TOTAL_HOSTS; ++h){
+  controller->RegisterHostAddress(map_host_to_sw[h],addr[h]);
+}
+}

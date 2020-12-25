@@ -1,0 +1,39 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_HOSTS 3
+#define TOTAL_SWITCHES 5
+
+// triangle topology
+/*
+          3 = 1 - h1
+         /| 
+   h0 - 0 |
+         \|
+          4 = 2 - h2
+*/
+
+#define GENERATE_TOPOLOGY() \
+\
+/* link hosts to the data plane */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("0us"));\
+LINK_HOST_TO_SW(0,0)\
+LINK_HOST_TO_SW(1,1)\
+LINK_HOST_TO_SW(2,2)\
+\
+/* link the switches */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100KBps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("100us"));\
+LINK_SW_TO_SW(0,3,1.0)\
+LINK_SW_TO_SW(0,4,1.0)\
+LINK_SW_TO_SW(3,4,1.0)\
+\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("200KBps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("100us"));\
+LINK_SW_TO_SW(3,1,2.0)\
+LINK_SW_TO_SW(4,2,2.0)\
+
+#include "topology_setup_ipv4.cc_part"
+
+#endif // __TOPOLOGY_MACROS__

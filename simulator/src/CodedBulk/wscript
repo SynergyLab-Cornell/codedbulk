@@ -1,0 +1,91 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+# def options(opt):
+#     pass
+
+# def configure(conf):
+#     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
+
+def build(bld):
+    module = bld.create_ns3_module('CodedBulk', ['internet','config-store','stats','openflow'])
+    module.source = [
+        'model/applications/CodedBulk-application.cc',
+        'model/applications/CodedBulk-multicast-sender.cc',
+        'model/applications/CodedBulk-bulk-send-application.cc',
+        'model/applications/CodedBulk-receiver.cc',
+
+        'model/codec/CodedBulk-codec-manager.cc',
+        'model/codec/CodedBulk-codec.cc',
+        'model/codec/CodedBulk-finite-field.cc',
+        'model/codec/CodedBulk-code-vector.cc',
+        'model/codec/CodedBulk-code-matrix.cc',
+        'model/codec/CodedBulk-virtual-link.cc',
+
+        'model/graph/CodedBulk-graph.cc',
+        'model/graph/CodedBulk-traffic.cc',
+        'model/graph/CodedBulk-path.cc',
+
+        'model/algorithms/CodedBulk-algorithm.cc',
+        'model/algorithms/CodedBulk-coding-algorithm.cc',
+        'model/algorithms/CodedBulk-cycle-aware-coding.cc',
+        'model/algorithms/CodedBulk-Jaggi2005.cc',
+        'model/algorithms/CodedBulk-routing-algorithm.cc',
+        'model/algorithms/CodedBulk-greedy-routing.cc',
+        'model/algorithms/CodedBulk-Watel2014-Steiner-routing.cc',
+
+        'model/CodedBulk-controller.cc',
+
+        'helper/CodedBulk-simple-net-device-helper.cc',
+        'utils/CodedBulk-simple-net-device.cc',
+        'utils/tcp-proxy.cc',
+        'utils/CodedBulk-proxy.cc',
+        'utils/CodedBulk-flow-identifier.cc',
+        ]
+
+    module_test = bld.create_ns3_module_test_library('CodedBulk')
+    module_test.source = [
+        ]
+
+    headers = bld(features='ns3header')
+    headers.module = 'CodedBulk'
+    headers.source = [
+        'model/applications/CodedBulk-application.h',
+        'model/applications/CodedBulk-multicast-sender.h',
+        'model/applications/CodedBulk-bulk-send-application.h',
+        'model/applications/CodedBulk-receiver.h',
+
+        'model/codec/CodedBulk-codec-manager.h',
+        'model/codec/CodedBulk-codec.h',
+        'model/codec/CodedBulk-finite-field.h',
+        'model/codec/CodedBulk-code-vector.h',
+        'model/codec/CodedBulk-code-matrix.h',
+        'model/codec/CodedBulk-virtual-link.h',
+
+        'model/graph/CodedBulk-graph.h',
+        'model/graph/CodedBulk-traffic.h',
+        'model/graph/CodedBulk-path.h',
+
+        'model/algorithms/CodedBulk-algorithm.h',
+        'model/algorithms/CodedBulk-coding-algorithm.h',
+        'model/algorithms/CodedBulk-cycle-aware-coding.h',
+        'model/algorithms/CodedBulk-Jaggi2005.h',
+        'model/algorithms/CodedBulk-routing-algorithm.h',
+        'model/algorithms/CodedBulk-greedy-routing.h',
+        'model/algorithms/CodedBulk-Watel2014-Steiner-routing.h',
+
+        'model/CodedBulk-controller.h',
+
+        'helper/CodedBulk-simple-net-device-helper.h',
+        'utils/CodedBulk-simple-net-device.h',
+        'utils/tcp-proxy.h',
+        'utils/CodedBulk-proxy.h',
+        'utils/CodedBulk-flow-identifier.h',
+        'utils/memory-allocator.h',
+        'utils/CodedBulk-system-parameters.h'
+        ]
+
+    if bld.env.ENABLE_EXAMPLES:
+        bld.recurse('examples')
+
+    # bld.ns3_python_bindings()
+

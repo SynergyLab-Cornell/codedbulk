@@ -1,0 +1,89 @@
+#ifdef __TRAFFIC_SETUP__
+#ifdef __TRAFFIC_GENERATION_UTILITIES__
+#ifdef TOTAL_HOSTS
+//TOTAL_NUM_TRAFFIC -> total number of generated traffic
+
+// only generate the traffic when the traffic is not yet generated
+if( traffic_manager->GetTrafficNotGenerated() ) {
+  std::set<int> sources;
+  std::set<int> non_sources;
+// use external defined traffic at source
+  Ptr<CodedBulkTraffic> interactive_traffic[TOTAL_HOSTS][TOTAL_HOSTS];
+  for(int fs = 0; fs < TOTAL_HOSTS; ++fs) {
+    for(int fd = 0; fd < TOTAL_HOSTS; ++fd) {
+      interactive_traffic[fs][fd] = NULL;
+    }
+  }
+
+#ifdef USER_DEFINED_TRAFFIC
+  for(std::set<int>::iterator
+    it_src  = sources.begin();
+    it_src != sources.end();
+    ++it_src
+  ) {
+    traffic_at_source[map_host_to_sw[*it_src]] = NULL;
+  }
+
+  USER_DEFINED_TRAFFIC()
+#else
+  Ptr<CodedBulkTraffic> traffic;
+
+  // geberate TOTAL_NUM_TRAFFIC multicast flows
+  sources = UniformlyGenerateNodesWithin (TOTAL_HOSTS, TOTAL_NUM_TRAFFIC);
+  for(std::set<int>::iterator
+    it_src  = sources.begin();
+    it_src != sources.end();
+    ++it_src
+  ) {
+    traffic = traffic_manager->addCodedBulkTraffic(map_host_to_sw[*it_src]);
+    traffic->ApplyCodedBulk(false);
+    traffic->SetUnicast(false);
+    traffic->SetPriority(CodedBulkTraffic::Bulk);
+
+    std::set<int> destinations = UniformlyGenerateNodesWithin (TOTAL_HOSTS, total_num_destinations, *it_src);
+    for(std::set<int>::iterator
+      it_dst  = destinations.begin();
+      it_dst != destinations.end();
+      ++it_dst
+    ) {
+      traffic->addDst(map_host_to_sw[*it_dst]);
+    }
+    traffic_at_source[*it_src] = traffic;
+  }
+#endif
+
+#ifdef FIG_INTERACTIVE
+  std::ifstream workload(workload_file.str().c_str());
+  int num_nodes = 0;
+  int num_flows = 0;
+  workload >> num_nodes >> num_flows;
+  if( num_nodes == TOTAL_HOSTS ) {
+    int int_flow_id;
+    double int_time_ms;
+    int int_src_id;
+    int int_dst_id;
+    uint64_t int_flow_size;
+    for(int f = 0; f < num_flows; ++f) {
+      //<Flow ID> <Time of arrival (ms)> <Source ID> <Destination ID> <Flow Size (KB)>
+      workload >> int_flow_id >> int_time_ms >> int_src_id >> int_dst_id >> int_flow_size;
+      int_flow_size *= 1000;
+      int_time_ms /= (1000.0);
+      if(interactive_traffic[int_src_id][int_dst_id] == NULL) {
+        interactive_traffic[int_src_id][int_dst_id] = traffic_manager->addCodedBulkTraffic(int_src_id);
+        interactive_traffic[int_src_id][int_dst_id]->addDst(int_dst_id);
+        interactive_traffic[int_src_id][int_dst_id]->ApplyCodedBulk(false);
+        interactive_traffic[int_src_id][int_dst_id]->SetUnicast(true);
+        interactive_traffic[int_src_id][int_dst_id]->SetPriority(CodedBulkTraffic::Interactive);
+      }
+      interactive_traffic[int_src_id][int_dst_id]->addWorkload(int_time_ms, int_flow_size);
+    }
+  }
+  workload.close();
+#endif
+
+  traffic_manager->SetTrafficNotGenerated(false);
+}
+
+#endif
+#endif
+#endif

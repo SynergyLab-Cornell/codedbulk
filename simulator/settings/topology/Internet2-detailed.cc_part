@@ -1,0 +1,96 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_HOSTS 62
+#define TOTAL_SWITCHES 62
+
+//TODO
+// Internet2 topology according to 
+// https://datatracker.ietf.org/meeting/99/materials/slides-99-panrg-sdn-for-public-internet/
+
+#define GENERATE_TOPOLOGY() \
+\
+/* link hosts to the data plane */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("0us"));\
+for(int h = 0; h < TOTAL_HOSTS; ++h){\
+  /* each node is a switch */\
+  LINK_HOST_TO_SW(h,h)\
+}\
+\
+/* link the switches */\
+helperCodedBulkSimple.SetDeviceAttribute ("DataRate", StringValue ("100KBps"));\
+helperCodedBulkSimple.SetChannelAttribute ("Delay", StringValue ("500us"));\
+LINK_SW_TO_SW( 0, 1,1.0)\
+LINK_SW_TO_SW( 0, 18,1.0)\
+LINK_SW_TO_SW( 0, 17,1.0)\
+LINK_SW_TO_SW( 1, 2,1.0)\
+LINK_SW_TO_SW( 2, 3,1.0)\
+LINK_SW_TO_SW( 3, 4,1.0)\
+LINK_SW_TO_SW( 18, 19,1.0)\
+LINK_SW_TO_SW( 19, 20,1.0)\
+LINK_SW_TO_SW( 17, 14,1.0)\
+LINK_SW_TO_SW( 4, 16,1.0)\
+LINK_SW_TO_SW( 16, 14,1.0)\
+LINK_SW_TO_SW( 4, 5,1.0)\
+LINK_SW_TO_SW( 5, 6,1.0)\
+LINK_SW_TO_SW( 6, 7,1.0)\
+LINK_SW_TO_SW( 7, 15,1.0)\
+LINK_SW_TO_SW( 15, 14,1.0)\
+LINK_SW_TO_SW( 7, 8,1.0)\
+LINK_SW_TO_SW( 8, 9,1.0)\
+LINK_SW_TO_SW( 9, 10,1.0)\
+LINK_SW_TO_SW( 10, 11,1.0)\
+LINK_SW_TO_SW( 11, 12,1.0)\
+LINK_SW_TO_SW( 12, 13,1.0)\
+LINK_SW_TO_SW( 13, 14,1.0)\
+LINK_SW_TO_SW( 20, 21,1.0)\
+LINK_SW_TO_SW( 21, 22,1.0)\
+LINK_SW_TO_SW( 13, 23,1.0)\
+LINK_SW_TO_SW( 23, 22,1.0)\
+LINK_SW_TO_SW( 24, 23,1.0)\
+LINK_SW_TO_SW( 25, 24,1.0)\
+LINK_SW_TO_SW( 11, 27,1.0)\
+LINK_SW_TO_SW( 25, 26,1.0)\
+LINK_SW_TO_SW( 26, 27,1.0)\
+LINK_SW_TO_SW( 27, 29,1.0)\
+LINK_SW_TO_SW( 26, 30,1.0)\
+LINK_SW_TO_SW( 30, 31,1.0)\
+LINK_SW_TO_SW( 31, 32,1.0)\
+LINK_SW_TO_SW( 32, 37,1.0)\
+LINK_SW_TO_SW( 23, 61,1.0)\
+LINK_SW_TO_SW( 61, 42,1.0)\
+LINK_SW_TO_SW( 23, 42,1.0)\
+LINK_SW_TO_SW( 42, 41,1.0)\
+LINK_SW_TO_SW( 42, 43,1.0)\
+LINK_SW_TO_SW( 43, 41,1.0)\
+LINK_SW_TO_SW( 44, 41,1.0)\
+LINK_SW_TO_SW( 45, 44,1.0)\
+LINK_SW_TO_SW( 22, 45,1.0)\
+LINK_SW_TO_SW( 42, 40,1.0)\
+LINK_SW_TO_SW( 40, 39,1.0)\
+LINK_SW_TO_SW( 38, 39,1.0)\
+LINK_SW_TO_SW( 32, 38,1.0)\
+LINK_SW_TO_SW( 37, 34,1.0)\
+LINK_SW_TO_SW( 34, 36,1.0)\
+LINK_SW_TO_SW( 34, 51,1.0)\
+LINK_SW_TO_SW( 51, 52,1.0)\
+LINK_SW_TO_SW( 52, 53,1.0)\
+LINK_SW_TO_SW( 50, 53,1.0)\
+LINK_SW_TO_SW( 49, 50,1.0)\
+LINK_SW_TO_SW( 47, 49,1.0)\
+LINK_SW_TO_SW( 47, 48,1.0)\
+LINK_SW_TO_SW( 46, 47,1.0)\
+LINK_SW_TO_SW( 41, 46,1.0)\
+LINK_SW_TO_SW( 48, 60,1.0)\
+LINK_SW_TO_SW( 29, 35,1.0)\
+LINK_SW_TO_SW( 35, 34,1.0)\
+LINK_SW_TO_SW( 53, 54,1.0)\
+LINK_SW_TO_SW( 54, 55,1.0)\
+LINK_SW_TO_SW( 55, 56,1.0)\
+LINK_SW_TO_SW( 56, 57,1.0)\
+LINK_SW_TO_SW( 57, 58,1.0)\
+LINK_SW_TO_SW( 58, 59,1.0)\
+LINK_SW_TO_SW( 60, 59,1.0)\
+
+#endif // __TOPOLOGY_MACROS__

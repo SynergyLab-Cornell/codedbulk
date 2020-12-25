@@ -1,0 +1,18 @@
+#ifndef __TRAFFIC_SETUP__
+#define __TRAFFIC_SETUP__
+
+TcpProxy::SetDataSegSize (1000);
+// to support around 1ms * 100Gbps : 13000000
+// to support around 100us * 100Gbps : 1300000
+Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (500000)); 
+Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (500000));
+Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (TcpProxy::GetDataSegSize ()));
+Config::SetDefault ("ns3::CodedBulkBulkSendApplication::SendSize", UintegerValue (1000));
+Config::SetDefault ("ns3::PfifoFastQueueDisc::MaxSize", QueueSizeValue (QueueSize ("10000p")));  // should be enough
+Time::SetResolution (Time::NS);
+
+Ptr<CodedBulkController> CodedBulk_controller = Create<CodedBulkController> ();
+Ptr<CodedBulkGraph> graph = CodedBulk_controller->GetCodedBulkGraph ();
+Ptr<CodedBulkTrafficManager> traffic_manager = CodedBulk_controller->GetCodedBulkTrafficManager ();
+
+#endif  // __TRAFFIC_SETUP__
