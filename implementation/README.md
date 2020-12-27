@@ -1,21 +1,16 @@
------ Network Coding Project c++ implementation codes -----
+# CodedBulk c++ implementation codes
 
-This file explains how to run the c++ implementation of the
-network coding project. The codes have been verified under
-Linux operating systems Fedora 27 and Ubuntu 14.04.01 LTS.
+This file explains how to run the c++ implementation of the network coding project. The codes have been verified under Linux operating systems Fedora 27 and Ubuntu 14.04.01 LTS.
 
-Table of Contents:
-------------------
+## Table of Contents:
 
-1) Requirements
-2) Deployment and Compilation
-3) Creating New Applications
-4) Running the Applications
-5) Creating Batch Experiments
+1. Requirements
+2. Deployment and Compilation
+3. Creating New Applications
+4. Running the Applications
+5. Creating Batch Experiments
 
-
-1) Requirements
----------------
+## 1. Requirements
 
 To compile the codes, the system needs to have GNU Make
     https://www.gnu.org/software/make/
@@ -25,8 +20,7 @@ The folloing descriptions are valid for each implementation
 distribution such as with_thread_pool.
 
 
-2) Deployment and Compilation
------------------------------
+## 2. Deployment and Compilation
 
 Choose the distribution of interest, e.g., with_thread_pool,
 and go into the folder controller/.
@@ -57,8 +51,7 @@ machine id.
 Find the compilation details in the README in apps/. 
 
 
-3) Creating New Applications
-----------------------------
+## 3. Creating New Applications
 
 Choose the distribution of interest, e.g., with_thread_pool,
 and go into the folder controller/.
@@ -76,13 +69,12 @@ and run the resulting controller by
 to create the applications.
 
 
-4) Running the Applications
----------------------------
+## 4. Running the Applications
 
 Find the running instructions in the folder apps/.
 
 
-5) Creating Batch Experiments
+## 5. Creating Batch Experiments
 -----------------------------
 
 - Firstly, a topology file should be created and put under controller/settings/topology/.

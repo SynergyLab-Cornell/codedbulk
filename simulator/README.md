@@ -1,19 +1,15 @@
------ Network Coding Project ns-3 simulation codes -----
+# CodedBulk ns-3 simulation codes
 
 This file explains how to run the network coding project
-experiments in ns-3.30. The codes have been verified under
-Fedora 27, a Linux operating system.
+experiments in ns-3.30. The codes have been verified under Fedora 27, a Linux operating system.
 
-Table of Contents:
-------------------
+## Table of Contents:
 
-1) Requirements
-2) Installation
-3) Running the Experiments
+1. Requirements
+2. Installation
+3. Running the Experiments
 
-
-1) Requirements
----------------
+## 1. Requirements
 
 The first program needed is ns3.30, which can be downloaded
 from
@@ -43,8 +39,8 @@ After a successful compilation, ns-3.30 will list a list of
 built modules.
 
 
-2) Installation
----------------
+## 2. Installation
+
 To install the network coding layer ns-3 implementation,
 copy the files in the folder ``ns-3'' into the previously
 compiled ``ns-3.30'' folder. And compile ns-3.30 using the
@@ -53,8 +49,8 @@ same commands
     ./waf
 
 
-3) Running the Experiments
---------------------------
+## 3. Running the Experiments
+
 The experiments are within the folder ``scratch.'' To run
 individual experiments, just type
     ./waf --run=<experiment_name>
