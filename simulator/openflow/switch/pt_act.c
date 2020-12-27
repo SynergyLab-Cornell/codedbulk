@@ -176,10 +176,22 @@ void push_mpls_act(struct datapath *dp, struct ofpbuf *buffer,
 	// first check whether there is another label on the stack
 	if (eth_proto == ETH_TYPE_MPLS_UNICAST) {
 		mpls_h.s = 0; // must be 0
+	// <KERN> For a set of other allowed EtherTypes the current label is pushed as 'bottom-of-stack' label. Currently all EtherType values are accepted </KERN>
+#ifdef NS3
 	} else if (eth_proto == ETH_TYPE_IP) {
+#else
+       } else if ( 1 ) {
+#endif
     	mpls_h.s = 1; // bottom of stack
 		// also change the Ethertype to MPLS
 		eth_h->eth_type = htons(ETH_TYPE_MPLS_UNICAST);
+#ifndef NS3
+    } else {
+		// <KERN>
+		// To Be Discussed: when the ethertype identifies an Ethernet related payload (e.g., ARP, LLDP), should/should not push the MPLS header?
+		// If SHOULD NOT: this 'else' branch should trigger some specific notification e.g., to controller.
+		// </KERN>
+#endif
     }
 
 	// next determine where to get the ttl and exp bits

@@ -106,8 +106,13 @@ int fwd_control_input(struct datapath *, const struct sender *,
                       const void *, size_t);
 
 uint32_t save_buffer(struct ofpbuf *);
+#ifdef NS3
 struct ofpbuf *retrieve_buffer(uint32_t id);
 void discard_buffer(uint32_t id);
+#else
+static struct ofpbuf *retrieve_buffer(uint32_t id);
+static void discard_buffer(uint32_t id);
+#endif
 
 static int port_no(struct datapath *dp, struct sw_port *p)
 {
@@ -1868,7 +1873,11 @@ uint32_t save_buffer(struct ofpbuf *buffer)
     return id;
 }
 
+#ifdef NS3
 struct ofpbuf *retrieve_buffer(uint32_t id)
+#else
+static struct ofpbuf *retrieve_buffer(uint32_t id)
+#endif
 {
     struct ofpbuf *buffer = NULL;
     struct packet_buffer *p;
@@ -1885,7 +1894,11 @@ struct ofpbuf *retrieve_buffer(uint32_t id)
     return buffer;
 }
 
+#ifdef NS3
 void discard_buffer(uint32_t id)
+#else
+static void discard_buffer(uint32_t id)
+#endif
 {
     struct packet_buffer *p;
 

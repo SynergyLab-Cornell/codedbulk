@@ -38,7 +38,65 @@ def configure(conf):
 def build(bld):
     # Build the OpenFlow C static library from the software implementation distribution
     of = bld.new_task_gen('cc', 'cstaticlib')
-    of.source = list(merge(bld.glob('/switch/*.c'), bld.glob('/lib/*.c')))
+    of.source = [
+        'lib/command-line.c',
+        'lib/csum.c',
+        'lib/daemon.c',
+        'lib/dhcp.c',
+        'lib/dhcp-client.c',
+        'lib/dirs.c',
+        'lib/dpif.c',
+        'lib/dynamic-string.c',
+        'lib/fatal-signal.c',
+        'lib/fault.c',
+        'lib/flow.c',
+        'lib/freelist.c',
+        'lib/hash.c',
+        'lib/hmap.c',
+        'lib/learning-switch.c',
+        'lib/list.c',
+        'lib/mac-learning.c',
+        'lib/misc.c',
+        'lib/mpls-fib.c',
+        'lib/mpls-switch.c',
+        'lib/netdev.c',
+        'lib/netlink.c',
+        'lib/ofpbuf.c',
+        'lib/ofp-print.c',
+        'lib/poll-loop.c',
+        'lib/port-array.c',
+        'lib/queue.c',
+        'lib/random.c',
+        'lib/rconn.c',
+        'lib/read-mpls-fib.c',
+        'lib/red-black-tree.c',
+        'lib/signals.c',
+        'lib/socket-util.c',
+        'lib/stack.c',
+        'lib/stp.c',
+        'lib/timeval.c',
+        'lib/util.c',
+        'lib/vconn.c',
+        'lib/vconn-mpls.c',
+        'lib/vconn-netlink.c',
+        'lib/vconn-stream.c',
+        'lib/vconn-tcp.c',
+        'lib/vconn-unix.c',
+        'lib/vlog.c',
+        'lib/vlog-socket.c',
+        'switch/chain.c',
+        'switch/crc32.c',
+        'switch/datapath.c',
+        'switch/dp_act.c',
+        'switch/er_act.c',
+        'switch/nx_act.c',
+        'switch/pt_act.c',
+        'switch/switch.c',
+        'switch/switch-flow.c',
+        'switch/switch-port.c',
+        'switch/table-hash.c',
+        'switch/table-linear.c',
+    ]
     of.includes = [
 	'.',
 	'..',
@@ -49,9 +107,10 @@ def build(bld):
 	'/usr/include/libxml2',
     ]
     of.env.append_value('CCFLAGS', '-fPIC')
+    of.env.append_value('CCFLAGS', '-DNS3')
     of.target = 'openflow'
 
-    # finally, let's install all this crap
+    # finally, let's install 
     bld.install_files('${PREFIX}/lib', 'libopenflow.a')
     start_dir = bld.path.find_dir('include/openflow')
     bld.install_files('${PREFIX}/include/openflow', start_dir.ant_glob('**/*.h'), cwd=start_dir)

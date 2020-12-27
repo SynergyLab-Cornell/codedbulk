@@ -51,7 +51,9 @@
 #include "rconn.h"
 #include "timeval.h"
 #include "vconn.h"
-//#include "vconn-ssl.h"
+#ifndef NS3
+#include "vconn-ssl.h"
+#endif
 #include "vlog-socket.h"
 
 #define THIS_MODULE VLM_switch
@@ -79,8 +81,11 @@ static int max_backoff = 15;
 
 static void add_ports(struct datapath *dp, char *port_list);
 
+#ifdef NS3
+/* ns-3 version is a library and should not have a main() function */
+#else
 int
-switch_main(int argc, char *argv[])
+main(int argc, char *argv[])
 {
     struct rconn *rconn;
     int error;
@@ -136,6 +141,7 @@ switch_main(int argc, char *argv[])
 
     return 0;
 }
+#endif
 
 static void
 add_ports(struct datapath *dp, char *port_list)

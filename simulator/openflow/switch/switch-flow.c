@@ -43,9 +43,15 @@
 #include "timeval.h"
 
 /* Internal function used to compare fields in flow. */
+#ifdef NS3
 static inline int
 flow_fields_match(const struct flow *a, const struct flow *b, uint16_t w,
-                  uint32_t src_mask, uint32_t dst_mask)
+                  uint32_t src_mask, uint32_t dst_mask)	
+#else
+static inline int
+flow_fields_match(const struct flow *a, const struct flow *b, uint32_t w,
+                  uint32_t src_mask, uint32_t dst_mask)					// <KERN> 3rd Attribute type set to uint32_t from uint16_t </KERN>
+#endif
 {
 //	print_flow_(a, w);
 	//print_flow_(b, w);
@@ -116,7 +122,7 @@ flow_extract_match(struct sw_flow_key* to, const struct ofp_match* from)
     // MAH: start
     // by default wild card the MPLS fields and only set them to
     // 0 when we have valid MPLS labels
-    to->wildcards |= OFPFW_MPLS_L1 | OFPFW_MPLS_L2;
+	// to->wildcards |= OFPFW_MPLS_L1 | OFPFW_MPLS_L2; <KERN> Automatic set of MPLS wildcards are removed </KERN>
     // MAH: end
     to->flow.reserved = 0;
     to->flow.in_port = from->in_port;
@@ -169,17 +175,26 @@ flow_extract_match(struct sw_flow_key* to, const struct ofp_match* from)
 
     	// just assume that there is a second label
     	// the second will be wildcarded if we match on only one
-    	to->wildcards &= ~OFPFW_MPLS_L1;
+		// to->wildcards &= ~OFPFW_MPLS_L1;		<KERN> Do not clear WILDCARD of MPLS_1: It allows the controller to define "ANY" wildcard on MPLS label... </KERN>
+#ifdef NS3
+        to->wildcards &= ~OFPFW_MPLS_L1;
+#endif
     	if (ntohl(to->flow.mpls_label1) >= 0x00100000) {
     		printf("Invalid first MPLS label %x\n", to->flow.mpls_label1);
     	}
     	// a value > 2^20 means mpls_label2 is not valid
     	// so set the mask bit
     	if (ntohl(to->flow.mpls_label2) < 0x00100000) {
-    		to->wildcards &= ~OFPFW_MPLS_L2;
+		// to->wildcards &= ~OFPFW_MPLS_L2; <KERN> DO NOT ALTER WILDCARDs </KERN>
+#ifdef NS3
+                to->wildcards &= ~OFPFW_MPLS_L2;
+#endif
     	}
     	// wildcard remaining headers
-    	to->wildcards |= OFPFW_NW | OFPFW_TP;
+		// to->wildcards |= OFPFW_NW | OFPFW_TP; <KERN> SHOULD NOT wildcarding higher layer flow entries here if we insist on original OpenFlow concept (i.e., cross-layer switching) </KERN>
+#ifdef NS3
+               to->wildcards |= OFPFW_NW | OFPFW_TP;
+#endif
     // MAH: end
 
     } else {

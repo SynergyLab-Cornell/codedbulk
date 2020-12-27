@@ -177,7 +177,11 @@ vlan_pull_tag(struct ofpbuf *buffer)
     }
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_vlan_vid(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -187,7 +191,11 @@ set_vlan_vid(struct ofpbuf *buffer, struct sw_flow_key *key,
     modify_vlan_tci(buffer, key, tci, VLAN_VID_MASK);
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_vlan_pcp(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -197,7 +205,11 @@ set_vlan_pcp(struct ofpbuf *buffer, struct sw_flow_key *key,
     modify_vlan_tci(buffer, key, tci, VLAN_PCP_MASK);
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 strip_vlan(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -205,7 +217,11 @@ strip_vlan(struct ofpbuf *buffer, struct sw_flow_key *key,
     key->flow.dl_vlan = htons(OFP_VLAN_NONE);
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_dl_addr(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -220,7 +236,11 @@ set_dl_addr(struct ofpbuf *buffer, struct sw_flow_key *key,
 }
 
 // MAH: start
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_mpls_label(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -228,7 +248,11 @@ set_mpls_label(struct ofpbuf *buffer, struct sw_flow_key *key,
     set_mpls_label_act(buffer, key, ml->label_out);
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_mpls_exp(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -237,7 +261,11 @@ set_mpls_exp(struct ofpbuf *buffer, struct sw_flow_key *key,
 }
 // MAH: end
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_nw_addr(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {
@@ -268,7 +296,11 @@ set_nw_addr(struct ofpbuf *buffer, struct sw_flow_key *key,
     }
 }
 
+#ifdef NS3
 void
+#else
+static void
+#endif
 set_tp_port(struct ofpbuf *buffer, struct sw_flow_key *key,
         const struct ofp_action_header *ah)
 {

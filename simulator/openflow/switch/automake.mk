@@ -1,4 +1,4 @@
-#bin_PROGRAMS += switch/switch
+bin_PROGRAMS += switch/switch
 man_MANS += switch/switch.8
 
 switch_switch_SOURCES = \

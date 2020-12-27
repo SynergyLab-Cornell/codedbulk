@@ -7,7 +7,9 @@
 #define FREELIST_H
 
 typedef unsigned char byte_t;
+//#ifndef NS3
 //typedef unsigned int size_t;
+//#endif
 
 // The freelist is implemented as a bitmap that is dynamically allocated in
 // BLOCK_SIZE byte chunks.

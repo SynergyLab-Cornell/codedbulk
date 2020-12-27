@@ -3,9 +3,11 @@
  *  */
 #include "stack.h"
 
-//int StackNotEmpty(stk_stack * theStack) {
-//  return( theStack ? (int) theStack->top : 0);
-//}
+#ifndef NS3
+int StackNotEmpty(stk_stack * theStack) {
+  return( theStack ? (int) theStack->top : 0);
+}
+#endif
 
 stk_stack * StackJoin(stk_stack * stack1, stk_stack * stack2) {
   if (!stack1->tail) {

@@ -5,6 +5,7 @@
  * dgu 	     2008-Aug-26 created
  * brandonh  2008-Oct-5  updated to 0x95
  * brandonh  2008-Nov-25 updated to 0x96 + bugfixes
+ * meszaros  2010-May-10 updated to support openflow 0.89 MPLS extension (0x97)
  *
  * Defines a Wireshark 1.0.0+ dissector for the OpenFlow protocol version 0x96.
  */
@@ -31,6 +32,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <openflow/openflow.h>
+//#include <openflow/openflow_089mpls.h>
 
 /** if 0, padding bytes will not be shown in the dissector */
 #define SHOW_PADDING 0
@@ -60,11 +62,13 @@ static const value_string names_ofp_type[] = {
 	{ OFPT_VENDOR,              "Vendor (SM)" },
 	
     /* Switch configuration messages. */
-    { OFPT_FEATURES_REQUEST,    "Features Request (CSM)" },
-    { OFPT_FEATURES_REPLY,      "Features Reply (CSM)" },
-    { OFPT_GET_CONFIG_REQUEST,  "Get Config Request (CSM)" },
-    { OFPT_GET_CONFIG_REPLY,    "Get Config Reply (CSM)" },
-    { OFPT_SET_CONFIG,          "Set Config (CSM)" },
+    { OFPT_FEATURES_REQUEST,                "Features Request (CSM)" },
+    { OFPT_FEATURES_REPLY,                  "Features Reply (CSM)" },
+    { OFPT_VPORT_TABLE_FEATURES_REQUEST,    "Virtual Port Table Features Request (CSM)" },
+    { OFPT_VPORT_TABLE_FEATURES_REPLY,      "Virtual Port Table Features Reply (CSM)" },
+    { OFPT_GET_CONFIG_REQUEST,              "Get Config Request (CSM)" },
+    { OFPT_GET_CONFIG_REPLY,                "Get Config Reply (CSM)" },
+    { OFPT_SET_CONFIG,                      "Set Config (CSM)" },
     
     /* Asynchronous messages. */
     { OFPT_PACKET_IN,           "Packet In (AM)" },
@@ -75,8 +79,9 @@ static const value_string names_ofp_type[] = {
     { OFPT_PACKET_OUT,          "Packet Out (CSM)" },
     { OFPT_FLOW_MOD,            "Flow Mod (CSM)" },
     { OFPT_PORT_MOD,            "Port Mod (CSM)" },
-    
-    /* Statistics messages. */    
+	{ OFPT_VPORT_MOD,           "Modify Virtual Port (CSM)" },
+
+    /* Statistics messages. */
     { OFPT_STATS_REQUEST,       "Stats Request (CSM)" },
     { OFPT_STATS_REPLY,         "Stats Reply (CSM)" },
     { 0,                        NULL }
@@ -85,25 +90,39 @@ static const value_string names_ofp_type[] = {
 
 /** names from ofp_action_type */
 static const value_string names_ofp_action_type[] = {
-    { OFPAT_OUTPUT,       "Output to switch port" },
-    { OFPAT_SET_VLAN_VID, "Set the 802.1q VLAN id." },
-    { OFPAT_SET_VLAN_PCP, "Set the 802.1q priority." },
-    { OFPAT_STRIP_VLAN,   "Strip the 802.1q header." },
-    { OFPAT_SET_DL_SRC,   "Ethernet source address" },
-    { OFPAT_SET_DL_DST,   "Ethernet destination address" },
-    { OFPAT_SET_NW_SRC,   "IP source address" },
-    { OFPAT_SET_NW_DST,   "IP destination address" },
-    { OFPAT_SET_TP_SRC,   "TCP/UDP source port" },
-    { OFPAT_SET_TP_DST,   "TCP/UDP destination port"},
-    { OFPAT_VENDOR,       "Vendor-defined action"},
-    { 0,                  NULL }
+    { OFPAT_OUTPUT,         "Output to switch port" },
+    { OFPAT_SET_VLAN_VID,   "Set the 802.1q VLAN id." },
+    { OFPAT_SET_VLAN_PCP,   "Set the 802.1q priority." },
+    { OFPAT_STRIP_VLAN,     "Strip the 802.1q header." },
+    { OFPAT_SET_DL_SRC,     "Ethernet source address" },
+    { OFPAT_SET_DL_DST,     "Ethernet destination address" },
+    { OFPAT_SET_NW_SRC,     "IP source address" },
+    { OFPAT_SET_NW_DST,     "IP destination address" },
+    { OFPAT_SET_TP_SRC,     "TCP/UDP source port" },
+    { OFPAT_SET_TP_DST,     "TCP/UDP destination port"},
+    { OFPAT_SET_MPLS_LABEL,	"Set the MPLS label."},
+    { OFPAT_SET_MPLS_EXP,	"Set the MPLS EXP bits."},
+    { OFPAT_VENDOR,         "Vendor-defined action"},
+    { 0,                    NULL }
 };
-#define NUM_ACTIONS_FLAGS 10
+static const value_string names_ofp_vport_action_type[] = {
+    { OFPPAT_OUTPUT,		   		"Output to switch port" },
+	{ OFPPAT_POP_MPLS,       		"Pop MLPS label" },
+    { OFPPAT_PUSH_MPLS,      		"Push MPLS label" },
+    { OFPPAT_SET_MPLS_LABEL,		"Set MPLS label" },
+    { OFPPAT_SET_MPLS_EXP,			"Set MPLS exp bits" },
+    { 0,                            NULL }
+};
+#define NUM_ACTIONS_FLAGS 12
+#define NUM_VPORT_ACTIONS_FLAGS 5
+#define NUM_MPLS_POP_ACTIONS_FLAGS 4
+#define NUM_MPLS_PUSH_ACTIONS_FLAGS 5
+
 #define NUM_PORT_CONFIG_FLAGS 7
 #define NUM_PORT_STATE_FLAGS 1
 #define NUM_PORT_FEATURES_FLAGS 12
-#define NUM_WILDCARDS 10
-#define NUM_CAPABILITIES_FLAGS 6
+#define NUM_WILDCARDS 12
+#define NUM_CAPABILITIES_FLAGS 7
 #define NUM_CONFIG_FLAGS 1
 #define NUM_SF_REPLY_FLAGS 1
 
@@ -131,8 +150,8 @@ static const value_string ts_wildcard_choice[] = {
 /** names from ofp_flow_mod_command */
 static const value_string names_flow_mod_command[] = {
     { OFPFC_ADD,           "New flow" },
-    { OFPFC_MODIFY,         "Modify all matching flows" },
-    { OFPFC_MODIFY_STRICT,  "Modify entry strictly matching wildcards" },
+    { OFPFC_MODIFY,        "Modify all matching flows" },
+    { OFPFC_MODIFY_STRICT, "Modify entry strictly matching wildcards" },
     { OFPFC_DELETE,        "Delete all matching flows" },
     { OFPFC_DELETE_STRICT, "Delete entry strictly matching wildcards and priority" },
     { 0,                   NULL }
@@ -145,11 +164,12 @@ static const value_string names_stats_types[] = {
     { OFPST_AGGREGATE, "Aggregate flow statistics" },
     { OFPST_TABLE,     "Flow table statistics" },
     { OFPST_PORT,      "Physical port statistics" },
+    { OFPST_PORT_TABLE, "Port table statistics" },
     { OFPST_VENDOR,    "Vendor extension" },
     { 0, NULL }
 };
 
-/** names from ofp_flow_mod_command */
+/** names from ofp_port_reason */
 static const value_string names_ofp_port_reason[] = {
     { OFPPR_ADD,    "The port was added" },
     { OFPPR_DELETE, "The port was removed" },
@@ -185,7 +205,14 @@ static const value_string names_ofp_error_type_reason[] = {
     { OFPET_BAD_REQUEST,        "Request was not understood" },
     { OFPET_BAD_ACTION,         "Error in action description" },
     { OFPET_FLOW_MOD_FAILED,    "Problem modifying flow entry" },
+    { OFPET_VPORT_MOD_FAILED,   "Problem modifying port table entry" },
     { 0,                        NULL }
+};
+/** names from ofp_vport_mod_command */
+static const value_string names_ofp_vport_mod_command[] = {
+    { OFPVP_ADD,        "New virtual port." },
+    { OFPVP_DELETE,     "Delete virtual port."},
+    { 0,                NULL }
 };
 
 /** Address masks */
@@ -397,6 +424,10 @@ static gint ofp_match_icmp_type = -1;
 static gint ofp_match_icmp_code = -1;
 static gint ofp_match_nw_src_mask_bits = -1;
 static gint ofp_match_nw_dst_mask_bits = -1;
+static gint ofp_match_mpls_label1 = -1;
+static gint ofp_match_mpls_label2 = -1;
+static gint ofp_match_mpls_nolabel= -1;
+static gint ofp_match_mpls_reservedlabel=-1;
 
 static gint ofp_action         = -1;
 static gint ofp_action_type    = -1;
@@ -415,6 +446,9 @@ static gint ofp_action_num     = -1;
 static gint ofp_action_output         = -1;
 static gint ofp_action_output_port    = -1;
 static gint ofp_action_output_max_len = -1;
+static gint ofp_action_mpls_label     = -1;
+static gint ofp_action_mpls_label_out = -1;
+static gint ofp_action_mpls_exp       = -1;
 
 /* Controller/Switch Messages */
 static gint ofp_switch_features               = -1;
@@ -431,6 +465,28 @@ static gint ofp_switch_features_ports_hdr = -1;
 static gint ofp_switch_features_ports[OFPP_MAX];
 static gint ofp_switch_features_ports_num = -1;
 static gint ofp_switch_features_ports_warn = -1;
+
+static gint ofp_vport_table_features        = -1;
+static gint ofp_vport_table_max_vports      = -1;
+static gint ofp_vport_actions_hdr     = -1;
+static gint ofp_vport_actions[NUM_VPORT_ACTIONS_FLAGS];
+static gint ofp_vport_table_max_chain_depth = -1;
+static gint ofp_vport_table_mixed_chaining  = -1;
+static gint ofp_vport_action_pop_mpls_hdr  = -1;
+static gint ofp_vport_action_pop_mpls[NUM_MPLS_POP_ACTIONS_FLAGS];
+static gint ofp_vport_action_push_mpls_hdr = -1;
+static gint ofp_vport_action_push_mpls[NUM_MPLS_PUSH_ACTIONS_FLAGS];
+static gint ofp_vport_action_output = -1;
+static gint ofp_vport_action_warn    = -1;
+static gint ofp_vport_action_num     = -1;
+static gint ofp_vport_action = -1;
+static gint ofp_vport_action_type = -1;
+static gint ofp_vport_action_len = -1;
+static gint ofp_vport_action_unknown = -1;
+static gint ofp_vport_mpls_set_label        = -1;
+static gint ofp_vport_action_push_mpls_label = -1;
+static gint ofp_vport_action_push_mpls_exp          = -1;
+static gint ofp_vport_action_push_mpls_ttl = -1;
 
 static gint ofp_switch_config               = -1;
 static gint ofp_switch_config_flags_hdr = -1;
@@ -458,6 +514,11 @@ static gint ofp_port_mod_mask_hdr = -1;
 static gint ofp_port_mod_mask[NUM_PORT_CONFIG_FLAGS];
 static gint ofp_port_mod_advertise_hdr = -1;
 static gint ofp_port_mod_advertise[NUM_PORT_FEATURES_FLAGS];
+
+static gint ofp_vport_mod   = -1;
+static gint ofp_vport_mod_vport = -1;
+static gint ofp_vport_mod_parent_port = -1;
+static gint ofp_vport_mod_command = -1;
 
 static gint ofp_stats_request       = -1;
 static gint ofp_stats_request_type  = -1;
@@ -512,20 +573,28 @@ static gint ofp_table_stats_active_count  = -1;
 static gint ofp_table_stats_lookup_count  = -1;
 static gint ofp_table_stats_matched_count = -1;
 
-static gint ofp_port_stats            = -1;
-static gint ofp_port_stats_port_no    = -1;
-static gint ofp_port_stats_rx_packets   = -1;
-static gint ofp_port_stats_tx_packets  = -1;
-static gint ofp_port_stats_rx_bytes   = -1;
-static gint ofp_port_stats_tx_bytes  = -1;
-static gint ofp_port_stats_rx_dropped   = -1;
-static gint ofp_port_stats_tx_dropped  = -1;
-static gint ofp_port_stats_rx_errors   = -1;
-static gint ofp_port_stats_tx_errors  = -1;
-static gint ofp_port_stats_rx_frame_err = -1;
-static gint ofp_port_stats_rx_over_err  = -1;
-static gint ofp_port_stats_rx_crc_err   = -1;
-static gint ofp_port_stats_collisions = -1;
+static gint ofp_port_stats                   = -1;
+static gint ofp_port_stats_port_no           = -1;
+static gint ofp_port_stats_rx_packets        = -1;
+static gint ofp_port_stats_tx_packets        = -1;
+static gint ofp_port_stats_rx_bytes          = -1;
+static gint ofp_port_stats_tx_bytes          = -1;
+static gint ofp_port_stats_rx_dropped        = -1;
+static gint ofp_port_stats_tx_dropped        = -1;
+static gint ofp_port_stats_rx_errors         = -1;
+static gint ofp_port_stats_tx_errors         = -1;
+static gint ofp_port_stats_rx_frame_err      = -1;
+static gint ofp_port_stats_rx_over_err       = -1;
+static gint ofp_port_stats_rx_crc_err        = -1;
+static gint ofp_port_stats_collisions        = -1;
+static gint ofp_port_stats_mpls_ttl0_dropped = -1;
+
+static gint ofp_port_table_stats                   = -1;
+static gint ofp_port_table_stats_max_vports        = -1;
+static gint ofp_port_table_stats_active_vports     = -1;
+static gint ofp_port_table_stats_lookup_count      = -1;
+static gint ofp_port_table_stats_port_match_count  = -1;
+static gint ofp_port_table_stats_chain_match_count = -1;
 
 static gint ofp_vendor_stats = -1;
 static gint ofp_vendor_stats_vendor = -1;
@@ -610,10 +679,18 @@ static gint ett_ofp_aggr_stats_request = -1;
 static gint ett_ofp_aggr_stats_reply = -1;
 static gint ett_ofp_table_stats = -1;
 static gint ett_ofp_port_stats = -1;
+static gint ett_ofp_port_table_stats = -1;
 static gint ett_ofp_vendor_stats = -1;
 static gint ett_ofp_packet_out = -1;
 static gint ett_ofp_packet_out_actions_hdr = -1;
 static gint ett_ofp_packet_out_data_hdr  = -1;
+static gint ett_ofp_vport_table_features = -1;
+static gint ett_ofp_vport_actions_hdr = -1;
+static gint ett_ofp_vport_mod = -1;
+static gint ett_ofp_vport_action_output = -1;
+static gint ett_ofp_vport_action = -1;
+static gint ett_ofp_vport_actions_pop_mpls_hdr = -1;
+static gint ett_ofp_vport_actions_push_mpls_hdr = -1;
 
 /* Asynchronous Messages */
 static gint ett_ofp_packet_in = -1;
@@ -652,6 +729,16 @@ void proto_register_openflow()
     }
     for( i=0; i<NUM_ACTIONS_FLAGS; i++ ) {
         ofp_switch_features_actions[i] = -1;
+    }
+    for( i=0; i<NUM_VPORT_ACTIONS_FLAGS; i++ ) {
+        ofp_vport_actions[i] = -1;
+    }
+    for( i=0; i<NUM_MPLS_POP_ACTIONS_FLAGS; i++ ) {
+        ofp_vport_action_pop_mpls[i] = -1;
+    }
+    
+    for( i=0; i<NUM_MPLS_PUSH_ACTIONS_FLAGS; i++ ) {
+        ofp_vport_action_push_mpls[i] = -1;
     }
     for( i=0; i<NUM_PORT_CONFIG_FLAGS; i++ ) {
         ofp_phy_port_config[i] = -1;
@@ -959,6 +1046,12 @@ void proto_register_openflow()
         { &ofp_match_wildcards[9],
             { "  IP Dst Addr Mask", "of.wildcard_nw_dst" , FT_UINT32, BASE_DEC, VALS(addr_mask), OFPFW_NW_DST_MASK , "IP Destination Address Mask", HFILL }},
 
+        { &ofp_match_wildcards[10],
+            { "  MPLS label 1", "of.wildcard_mpls_label1", FT_UINT32, BASE_DEC, VALS(wildcard_choice), OFPFW_MPLS_L1, "MPLS label 1", HFILL }},
+
+        { &ofp_match_wildcards[11],
+            { "  MPLS label 2", "of.wildcard_mpls_label2", FT_UINT32, BASE_DEC, VALS(wildcard_choice), OFPFW_MPLS_L2, "MPLS label 2", HFILL }},
+
         { &ofp_table_stats_wildcards[0],
           { "  Input port", "of.wildcard_in_port" , FT_UINT32, BASE_DEC, VALS(ts_wildcard_choice), OFPFW_IN_PORT, "Input Port", HFILL }},
 
@@ -989,7 +1082,13 @@ void proto_register_openflow()
         { &ofp_table_stats_wildcards[9],
             { "  IP Dst Addr Mask", "of.wildcard_nw_dst" , FT_UINT32, BASE_DEC, VALS(ts_addr_mask), OFPFW_NW_DST_MASK , "IP Destination Address Mask", HFILL }},
 
-        { &ofp_match_in_port,
+        { &ofp_table_stats_wildcards[10],
+            { "MPLS label 1", "of.wildcard_mpls_label1", FT_UINT32, BASE_DEC, VALS(ts_wildcard_choice), OFPFW_MPLS_L1, "MPLS label 1", HFILL }},
+
+        { &ofp_table_stats_wildcards[11],
+            { "MPLS label 2", "of.wildcard_mpls_label2", FT_UINT32, BASE_DEC, VALS(ts_wildcard_choice), OFPFW_MPLS_L2, "MPLS label 2", HFILL }},
+
+            { &ofp_match_in_port,
           { "Input Port", "of.match_in_port", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Input Port", HFILL }},
 
         { &ofp_match_dl_src,
@@ -1026,10 +1125,22 @@ void proto_register_openflow()
           { "ICMP Code", "of.match_tp_dst", FT_UINT16, BASE_DEC, NO_STRINGS, NO_MASK, "ICMP Code", HFILL }},
 
         { &ofp_match_nw_src_mask_bits,
-            { "IP Src Addr Mask Bits", "of.match_nw_src_mask_bits", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Source IP Address Mask Bits", HFILL }},
+          { "IP Src Addr Mask Bits", "of.match_nw_src_mask_bits", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Source IP Address Mask Bits", HFILL }},
 
         { &ofp_match_nw_dst_mask_bits,
-            { "IP Dst Addr Mask Bits", "of.match_nw_dst_mask_bits", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Destination IP Address Mask Bits", HFILL }},
+          { "IP Dst Addr Mask Bits", "of.match_nw_dst_mask_bits", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Destination IP Address Mask Bits", HFILL }},
+
+        { &ofp_match_mpls_label1,
+          { "MPLS Label 1", "of.match_mpls_label1", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "MPLS Label 1", HFILL }},
+          
+        { &ofp_match_mpls_label2,
+          { "MPLS Label 2", "of.match_mpls_label2", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "MPLS Label 2", HFILL }},
+          
+        { &ofp_match_mpls_nolabel,
+          { "No MPLS Label", "of.match_mpls_nolabel", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "No MPLS label", HFILL }},
+          
+        { &ofp_match_mpls_reservedlabel,
+          { "MPLS label is reserved", "of.match_mpls_reservedlabel", FT_NONE, BASE_DEC, NO_STRINGS, NO_MASK, "Reserved MPLS label", HFILL }},
 
         /* CS: action type */
         { &ofp_action,
@@ -1068,6 +1179,94 @@ void proto_register_openflow()
         { &ofp_action_num,
           { "# of Actions", "of.action_num", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Number of Actions", HFILL }},
 
+        /* CS: ofp_vport_table_features */
+        { &ofp_vport_table_features,
+          { "Virtual Port Table Features", "of.vf", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Virtual Port Table Features", HFILL }},
+
+        { &ofp_vport_table_max_vports,
+          { "Max number of entries supported", "of.vf_max_vports", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Max number of entries supported", HFILL }},
+
+        /* CS: ofp_vport_mod */
+        { &ofp_vport_mod,
+          { "Add or remove a virtual port", "of.vport_mod", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Add or remove a virtual port", HFILL }},
+        { &ofp_vport_mod_vport,
+          { "Virtual port number", "of.vport_mod_vport", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Virtual port number", HFILL }},
+        { &ofp_vport_mod_parent_port,
+          { "Parent port number", "of.vport_mod_parent", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Parent port number", HFILL }},
+        { &ofp_vport_mod_command,
+          { "Flow mod action command", "of.vport_mod_command", FT_UINT16, BASE_DEC, VALS(names_ofp_vport_mod_command), NO_MASK, "Flow mod action command", HFILL }},
+
+        /* CS: ofp_vport_actions */
+        { &ofp_vport_actions_hdr,
+          { "Actions", "of.vf_actions", FT_UINT32, BASE_HEX, NO_STRINGS, NO_MASK, "Actions", HFILL }},
+
+        { &ofp_vport_actions[0],
+          { "  Output to switch port", "of.vf_actions_output", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPPAT_OUTPUT, "Output to switch port", HFILL }},
+        
+        { &ofp_vport_actions[1],
+          { "  Pop MLPS label", "of.vf_actions_pop_mpls", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPPAT_POP_MPLS, "Pop MLPS label", HFILL }},
+        
+        { &ofp_vport_actions[2],
+          { "  Push MPLS label", "of.vf_actions_push_mpls", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPPAT_PUSH_MPLS, "Push MPLS label", HFILL }},
+        
+        { &ofp_vport_actions[3],
+          { "  Set MPLS label", "of.vf_actions_set_mpls_label", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPPAT_SET_MPLS_LABEL, "Set MPLS label", HFILL }},
+        
+        { &ofp_vport_actions[4],
+          { "  Set MPLS exp bits", "of.vf_actions_set_mpls_exp", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPPAT_SET_MPLS_EXP, "Set MPLS exp bits", HFILL }},
+        
+        { &ofp_vport_table_max_chain_depth,
+          { "Maximum depth of virtual port chain", "of.vf_max_chain_depth", FT_UINT16, BASE_DEC, NO_STRINGS, NO_MASK, "Maximum depth of virtual port chain", HFILL }},
+        
+        { &ofp_vport_table_mixed_chaining,
+          { "Indicates that the virtual port cannot have a parent virtual port that performs a different action", "of.vf_mixed_chain", FT_UINT8, BASE_DEC, VALS(names_choice), NO_MASK, "Virtual port cannot have a parent virtual port that performs a different action", HFILL }},
+        
+        /* MPLS Pop action flags */
+        { &ofp_vport_action_pop_mpls_hdr,
+          { "MPLS pop action label flags", "of.vf_mpls_pop", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "MPLS pop action flags", HFILL }},
+
+        { &ofp_vport_action_pop_mpls[0],
+          { "  Don't pop MPLS label", "of.vf_mpls_pop_dont_pop", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_POP_DONT_POP, "Don't pop", HFILL }},
+
+        { &ofp_vport_action_pop_mpls[1],
+          { "  Decrement the TTL", "of.vf_mpls_pop_decrement_ttl", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_POP_DECREMENT_TTL, "Decrement the TTL", HFILL }},
+
+        { &ofp_vport_action_pop_mpls[2],
+          { "  Copy the ttl bits to the next header", "of.vf_mpls_pop_copy_ttl", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_POP_COPY_TTL, "Copy the ttl bits to the next header", HFILL }},
+
+        { &ofp_vport_action_pop_mpls[3],
+          { "  Copy the exp bits to the next header", "of.vf_mpls_pop_copy_exp", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_POP_COPY_EXP, "Copy the exp bits to the next header", HFILL }},
+
+        /* MPLS Push action flags */
+        { &ofp_vport_action_push_mpls_hdr,
+          { "MPLS push label flags", "of.vf_mpls_push", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "MPLS push action flags", HFILL }},
+
+        { &ofp_vport_action_push_mpls[0],
+          { "  Decrement the TTL", "of.vf_mpls_push_decrement_ttl", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_PUSH_DECREMENT_TTL, "Decrement the TTL", HFILL }},
+
+        { &ofp_vport_action_push_mpls[1],
+          { "  Copy the ttl bits from the next header", "of.vf_mpls_push_ttl_next", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_PUSH_TTL_NEXT, "Copy the ttl bits from the next header", HFILL }},
+
+        { &ofp_vport_action_push_mpls[2],
+          { "  Copy the exp bits from the next header", "of.vf_mpls_push_exp_next", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_PUSH_EXP_NEXT, "Copy the exp bits from the next header", HFILL }},
+
+        { &ofp_vport_action_push_mpls[3],
+          { "  Copy the ttl bits from the previous label", "of.vf_mpls_push_ttl_prev", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_PUSH_TTL_PREV, "Copy the ttl bits from the previous label", HFILL }},
+
+        { &ofp_vport_action_push_mpls[4],
+          { "  Copy the exp bits from the previous label", "of.vf_mpls_push_exp_prev", FT_UINT32, BASE_DEC, VALS(names_choice), MPLS_PUSH_EXP_PREV, "Copy the exp bits from the previous label", HFILL }},
+
+        /* Rewrite MPLS Label Action */
+       { &ofp_vport_action_push_mpls_label,
+          { "Outgoing MPLS Label", "of.vf_action_push_mpls_label", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Outgoing MPLS Label", HFILL }},
+
+        /* Rewrite MPLS Exp Bits Action */
+        { &ofp_vport_action_push_mpls_exp,
+          { "Experimental/class of service bits", "of.vport_action_push_mpls_exp", FT_UINT8, BASE_DEC, NO_STRINGS, NO_MASK, "Experimental/class of service bits", HFILL }},
+
+        { &ofp_vport_action_push_mpls_ttl,
+          { "Time to live", "of.vport_action_push_mpls_ttl", FT_UINT8, BASE_DEC, NO_STRINGS, NO_MASK, "Time to Live", HFILL }},
+        
         /* CS: ofp_action_output */
         { &ofp_action_output,
           { "Output Action(s)", "of.action_output", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Output Action(s)", HFILL }},
@@ -1077,6 +1276,41 @@ void proto_register_openflow()
           
         { &ofp_action_output_max_len,
           { "Max Bytes to Send", "of.action_output_max_len", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Maximum Bytes to Send", HFILL }},
+          
+        { &ofp_vport_action_output,
+          { "Output Action(s)", "of.vport_action_output", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Output Action(s)", HFILL }},
+          
+        { &ofp_vport_action_unknown,
+          { "Unknown Action Type", "of.vport_action_unknown", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Unknown Action Type", HFILL }},
+
+        { &ofp_vport_action_warn,
+          { "Warning", "of.vport_action_warn", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Warning", HFILL }},
+        
+        { &ofp_vport_action_num,
+          { "# of Actions", "of.vport_action_num", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Number of Actions", HFILL }},
+
+        { &ofp_vport_action,
+          { "Action", "of.vport_action", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Action", HFILL }},
+
+        { &ofp_vport_action_type,
+          { "Type", "of.vport_action_type", FT_UINT16, BASE_DEC, VALS(names_ofp_vport_action_type), NO_MASK, "Type", HFILL }},
+
+        { &ofp_vport_action_len,
+          { "Len", "of.vport_action_len", FT_UINT16, BASE_DEC, NO_STRINGS, NO_MASK, "Len", HFILL }},
+
+        { &ofp_vport_mpls_set_label,
+          { "Outgoing MPLS Label", "of.vf_mpls_set_label", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Outgoing MPLS Label", HFILL }},
+
+          /* Rewrite MPLS Label Action, CS: ofp_action_mpls_label */
+        { &ofp_action_mpls_label,
+          { "Rewrite MPLS Label Action", "of.action_mpls_label", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Output Action(s)", HFILL }},
+        
+        { &ofp_action_mpls_label_out,
+          { "Outgoing mpls label", "of.action_mpls_out", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Outgoing mpls label", HFILL }},
+          
+          /* Rewrite MPLS EXP action, CS: ofp_action_mpls_exp */
+        { &ofp_action_mpls_exp,
+          { "Experimental / Class of service bits", "of.action_mpls_exp", FT_UINT8, BASE_DEC, NO_STRINGS, NO_MASK, "Experimental / Class of service bits", HFILL }},
 
         /* CSM: Features Request */
         /* nothing beyond the header */
@@ -1115,6 +1349,9 @@ void proto_register_openflow()
         { &ofp_switch_features_capabilities[5],
           { "  Can reassemble IP fragments", "of.sf_capabilities_ip_reasm", FT_UINT32, BASE_DEC, VALS(names_choice), OFPC_IP_REASM,  "Can reassemble IP fragments", HFILL }},
           
+        { &ofp_switch_features_capabilities[6],
+          { "  Supports a virtual port table. Rest of virtual port table attributes specified in ofp_vport_table_features", "of.sf_capabilities_vport_table", FT_UINT32, BASE_DEC, VALS(names_choice), OFPC_VPORT_TABLE,  "Supports a virtual port table", HFILL }},
+          
         { &ofp_switch_features_actions_hdr,
           { "Actions", "of.sf_actions", FT_UINT32, BASE_HEX, NO_STRINGS, NO_MASK, "Actions", HFILL }},
 
@@ -1151,6 +1388,12 @@ void proto_register_openflow()
         { &ofp_switch_features_actions[9],
           { "  TCP/UDP destination", "of.sf_actions_dst_port", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPAT_SET_TP_DST, "TCP/UDP destination port", HFILL }},
 
+        { &ofp_switch_features_actions[10],
+          { "  Set the MPLS label.", "of.sf_actions_set_mpls_label", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPAT_SET_MPLS_LABEL, "Set the MPLS label", HFILL }},
+
+        { &ofp_switch_features_actions[11],
+          { "  Set the MPLS EXP bits.", "of.sf_actions_set_mpls_exp", FT_UINT32, BASE_DEC, VALS(names_choice), 1 << OFPAT_SET_MPLS_EXP, "Set the MPLS EXP bits", HFILL }},
+
         { &ofp_switch_features_ports_hdr,
           { "Port Definitions", "of.sf_ports", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Port Definitions", HFILL }},
 
@@ -1159,7 +1402,6 @@ void proto_register_openflow()
 
         { &ofp_switch_features_ports_warn,
           { "Warning", "of.sf_ports_warn", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Warning", HFILL }},
-
 
         /* CSM: Get Config Request */
         /* nothing beyond the header */
@@ -1380,7 +1622,6 @@ void proto_register_openflow()
             { "   Asymmetric pause support", "of.port_advertise_pause_asym",  FT_UINT32, BASE_DEC, VALS(names_choice), OFPPF_PAUSE_ASYM, "Asymmetric pause support", HFILL }},
 
 
-
         /* AM: Port Status */
         { &ofp_port_status,
           { "Port Status", "of.ps", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Port Status", HFILL } },
@@ -1493,7 +1734,7 @@ void proto_register_openflow()
           { "Port Stats", "of.stats_port", FT_STRING, BASE_NONE, NO_STRINGS, NO_MASK, "Port Stats", HFILL } },
 
         { &ofp_port_stats_port_no,
-          { "Port #", "of.stats_port_port_no", FT_UINT16, BASE_DEC, NO_STRINGS, NO_MASK, "", HFILL } },
+          { "Port #", "of.stats_port_port_no", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "", HFILL } },
 
         { &ofp_port_stats_rx_packets,
           { "# Received packets", "of.stats_port_rx_packets", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "# Received packets", HFILL } },
@@ -1531,6 +1772,28 @@ void proto_register_openflow()
         { &ofp_port_stats_collisions,
           { "# Collisions", "of.stats_port_collisions", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "Number of collisions", HFILL } },
 
+        { &ofp_port_stats_mpls_ttl0_dropped,
+          { " # MPLS packets dropped due to ttl 0", "of.stats_mpls_ttl0_dropped", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "Number of dropped MPLS packets due to ttl 0", HFILL } },
+
+        /* CSM: Stats: Port Table */ 
+        { &ofp_port_table_stats,
+          { "Port Table Stats", "of.stats_port_table", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Port Table Stats", HFILL } },
+
+        { &ofp_port_table_stats_max_vports,
+          { "Max number of entries supported", "of.stats_port_table_max_vports", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Max number of entries supported", HFILL } },
+          
+        { &ofp_port_table_stats_active_vports,
+          { "Number of active entries", "of.stats_port_table_active_vports", FT_UINT32, BASE_DEC, NO_STRINGS, NO_MASK, "Number of active entries", HFILL } },
+        
+        { &ofp_port_table_stats_lookup_count,
+          { "Number of port entries looked up in port table", "of.stats_port_table_lookup_count", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "Number of port entries looked up in port table", HFILL } },
+        
+        { &ofp_port_table_stats_port_match_count,
+          { "Number of entries looked up in port table", "of.stats_port_table_port_match_count", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "Number of entries looked up in port table", HFILL } },
+          
+        { &ofp_port_table_stats_chain_match_count,
+          { "Number of entries accessed by chaining", "of.stats_port_table_chain_match_count", FT_UINT64, BASE_DEC, NO_STRINGS, NO_MASK, "Number of entries accessed by chaining", HFILL } },
+        
         /* CSM: Stats: Table */
         { &ofp_table_stats,
           { "Table Stats", "of.stats_table", FT_NONE, BASE_NONE, NO_STRINGS, NO_MASK, "Table Stats", HFILL } },
@@ -1614,6 +1877,7 @@ void proto_register_openflow()
         &ett_ofp_aggr_stats_reply,
         &ett_ofp_table_stats,
         &ett_ofp_port_stats,
+        &ett_ofp_port_table_stats,
         &ett_ofp_packet_out,
         &ett_ofp_packet_out_data_hdr,
         &ett_ofp_packet_out_actions_hdr,
@@ -1623,6 +1887,13 @@ void proto_register_openflow()
         &ett_ofp_port_status,
         &ett_ofp_error_msg,
         &ett_ofp_error_msg_data,
+        &ett_ofp_vport_table_features,
+        &ett_ofp_vport_actions_hdr,
+        &ett_ofp_vport_mod,
+        &ett_ofp_vport_action_output,
+        &ett_ofp_vport_action,
+        &ett_ofp_vport_actions_pop_mpls_hdr,
+        &ett_ofp_vport_actions_push_mpls_hdr,
     };
 
     proto_openflow = proto_register_protocol( "OpenFlow Protocol",
@@ -1695,14 +1966,16 @@ static void dissect_pad(proto_tree* tree, guint32 *offset, guint pad_byte_count)
     *offset += pad_byte_count;
 #endif
 }
-
-static void dissect_port(proto_tree* tree, gint hf, tvbuff_t *tvb, guint32 *offset) {
+static void dissect_port(proto_tree* tree, gint hf, tvbuff_t *tvb, guint32 *offset, guint32 port_len) {
     /* get the port number */
-    guint16 port = tvb_get_ntohs( tvb, *offset );
+    guint32 port = -1;
 
-    /* save the numeric searchable field, but don't show it on the GUI */
-    proto_tree_add_item_hidden( tree, ofp_port, tvb, *offset, 2, FALSE );
-
+    if (port_len == 32) {
+    port = tvb_get_ntohl( tvb, *offset ); // for 32bit length addresses
+    } else {
+    port = tvb_get_ntohs( tvb, *offset ); // for 16bit length addresses
+    };
+    
     /* check to see if the port is special (e.g. the name of a fake output ports defined by ofp_port) */
     const char* str_port = NULL;
     char str_num[6];
@@ -1740,6 +2013,15 @@ static void dissect_port(proto_tree* tree, gint hf, tvbuff_t *tvb, guint32 *offs
         str_port = "None  (not associated with a physical port)";
         break;
 
+    // these are meaningless
+    /*case OFPP_VP_START:
+    	str_port = "Start of Virtual Ports";
+    	break;
+
+	case OFPP_VP_END:
+		str_port = "End of Virtual Ports";
+		break;*/
+
     default:
         /* no special name, so just use the number */
         str_port = str_num;
@@ -1747,7 +2029,11 @@ static void dissect_port(proto_tree* tree, gint hf, tvbuff_t *tvb, guint32 *offs
     }
 
     /* put the string-representation in the GUI tree */
+    if (port_len == 32) {
+    add_child_str( tree, hf, tvb, offset, 4, str_port );
+    } else {
     add_child_str( tree, hf, tvb, offset, 2, str_port );
+    };
 }
 
 static void dissect_phy_ports(proto_tree* tree, proto_item* item, tvbuff_t *tvb, packet_info *pinfo, guint32 *offset, guint num_ports)
@@ -1772,7 +2058,7 @@ static void dissect_phy_ports(proto_tree* tree, proto_item* item, tvbuff_t *tvb,
         port_item = proto_tree_add_item(tree, ofp_phy_port, tvb, *offset, sizeof(struct ofp_phy_port), FALSE);
         port_tree = proto_item_add_subtree(port_item, ett_ofp_phy_port);
 
-        dissect_port( port_tree, ofp_phy_port_port_no, tvb, offset );
+        dissect_port( port_tree, ofp_phy_port_port_no, tvb, offset, 16 );
         add_child( port_tree, ofp_phy_port_hw_addr, tvb, offset, OFP_ETH_ALEN );
         add_child( port_tree, ofp_phy_port_name, tvb, offset, OFP_MAX_PORT_NAME_LEN );
         
@@ -1855,7 +2141,7 @@ static void dissect_port_mod(proto_tree* tree, proto_item* item, tvbuff_t *tvb, 
     proto_tree *advertise_tree;
 
     int i;
-    dissect_port( tree, ofp_port_mod_port_no, tvb, offset );
+    dissect_port( tree, ofp_port_mod_port_no, tvb, offset, 16 );
     add_child( tree, ofp_port_mod_hw_addr, tvb, offset, OFP_ETH_ALEN );
     
     /* config */
@@ -2056,7 +2342,7 @@ static void dissect_match(proto_tree* tree, proto_item* item, tvbuff_t *tvb, pac
 
     /* show only items whose corresponding wildcard bit is not set */
     if( ~wildcards & OFPFW_IN_PORT )
-        dissect_port(match_tree, ofp_match_in_port, tvb, offset);
+        dissect_port(match_tree, ofp_match_in_port, tvb, offset, 16);
     else
         *offset += 2;
 
@@ -2117,15 +2403,41 @@ static void dissect_match(proto_tree* tree, proto_item* item, tvbuff_t *tvb, pac
         else
             *offset += 2;
     }
+    if ( ~wildcards & OFPFW_MPLS_L1 ) {
+       guint32 label1_value = tvb_get_ntohl( tvb, *offset );   
+
+       if ( label1_value > 1048575 ) // if value > 2^20-1
+           add_child(match_tree, ofp_match_mpls_nolabel, tvb, offset, 4);
+       else if (label1_value < 15)
+           add_child(match_tree, ofp_match_mpls_reservedlabel, tvb, offset, 4);
+       else
+           add_child(match_tree, ofp_match_mpls_label1, tvb, offset, 4);
+           }
+    else
+        *offset += 4;
+        
+    if ( ~wildcards & OFPFW_MPLS_L2 ){
+       guint32 label2_value = tvb_get_ntohl( tvb, *offset );   
+       
+       if ( label2_value > 1048575 ) // if value > 2^20-1
+           add_child(match_tree, ofp_match_mpls_nolabel, tvb, offset, 4);
+       else if (label2_value < 15)
+           add_child(match_tree, ofp_match_mpls_reservedlabel, tvb, offset, 4);
+       else
+           add_child(match_tree, ofp_match_mpls_label2, tvb, offset, 4);
+           }
+    else
+        *offset += 4; 
 }
 
 static void dissect_action_output(proto_tree* tree, tvbuff_t *tvb, guint32 *offset)
 {
     /* add the output port */
-    dissect_port( tree, ofp_action_output_port, tvb, offset );
-
+    dissect_port( tree, ofp_action_output_port, tvb, offset, 32 );
+    
     /* determine the maximum number of bytes to send (0 =>  no limit) */
 	guint16 max_len = tvb_get_ntohs( tvb, *offset );
+
     if( max_len ) {
         char str[11];
         snprintf( str, 11, "%u", max_len );
@@ -2133,6 +2445,8 @@ static void dissect_action_output(proto_tree* tree, tvbuff_t *tvb, guint32 *offs
     }
     else
         add_child_str( tree, ofp_action_output_max_len, tvb, offset, 2, "entire packet (no limit)" );
+    /* pad */
+    dissect_pad( tree, offset, 6);
 }
 
 /** returns the number of bytes dissected (-1 if an unknown action type is
@@ -2189,6 +2503,16 @@ static gint dissect_action(proto_tree* tree, proto_item* item, tvbuff_t *tvb, pa
     case OFPAT_SET_TP_DST:
         add_child( action_tree, ofp_action_tp_port, tvb, offset, 2 );
         dissect_pad(action_tree, offset, 2);
+        break;
+
+    case OFPAT_SET_MPLS_LABEL:
+        add_child( action_tree, ofp_action_mpls_label, tvb, offset, 4 );
+        dissect_pad(action_tree, offset, 0);
+        break;
+        
+    case OFPAT_SET_MPLS_EXP:
+        add_child( action_tree, ofp_action_mpls_exp, tvb, offset, 4 );
+        dissect_pad(action_tree, offset, 0);
         break;
 
     default:
@@ -2252,6 +2576,132 @@ static void dissect_switch_features_actions(tvbuff_t *tvb, packet_info *pinfo, p
     gint i;
     for(i=0; i<NUM_ACTIONS_FLAGS; i++)
         add_child_const(sf_act_tree, ofp_switch_features_actions[i], tvb, offset, field_size);
+}
+
+static void dissect_vport_actions(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint *offset, guint field_size) {
+    proto_item *vf_act_item = proto_tree_add_item(tree, ofp_vport_actions_hdr, tvb, *offset, field_size, FALSE);
+    proto_tree *vf_act_tree = proto_item_add_subtree(vf_act_item, ett_ofp_vport_actions_hdr);
+    gint i;
+    for(i=0; i<NUM_VPORT_ACTIONS_FLAGS; i++){
+        add_child_const(vf_act_tree, ofp_vport_actions[i], tvb, *offset, field_size);
+    }
+    /* pad */
+    *offset += 4;
+}
+
+static void dissect_vport_action_pop_mpls(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint *offset, guint field_size) {
+    proto_item *vf_act_item = proto_tree_add_item(tree, ofp_vport_action_pop_mpls_hdr, tvb, *offset, field_size, FALSE);
+    proto_tree *vf_act_tree = proto_item_add_subtree(vf_act_item, ett_ofp_vport_actions_pop_mpls_hdr);
+    gint i;
+    for(i=0; i<NUM_MPLS_POP_ACTIONS_FLAGS; i++){
+        add_child_const(vf_act_tree, ofp_vport_action_pop_mpls[i], tvb, *offset, field_size);
+    }
+    /* pad */
+    dissect_pad( tree, offset, field_size);
+}
+
+static void dissect_vport_action_push_mpls(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint *offset, guint field_size) {
+    proto_item *vf_act_item = proto_tree_add_item(tree, ofp_vport_action_push_mpls_hdr, tvb, *offset, field_size, FALSE);
+    proto_tree *vf_act_tree = proto_item_add_subtree(vf_act_item, ett_ofp_vport_actions_push_mpls_hdr);
+    gint i;
+    for(i=0; i<NUM_MPLS_PUSH_ACTIONS_FLAGS; i++){
+        add_child_const(vf_act_tree, ofp_vport_action_push_mpls[i], tvb, *offset, field_size);
+    }
+    /* pad */
+    dissect_pad( tree, offset, field_size);
+}
+
+static gint dissect_vport_action(proto_tree* tree, proto_item* item, tvbuff_t *tvb, packet_info *pinfo, guint32 *offset)
+{
+    guint32 offset_start = *offset;
+    guint16 type = tvb_get_ntohs( tvb, *offset );
+	guint16 len = tvb_get_ntohs( tvb, *offset + 2);
+	
+	proto_item *vport_action_item = proto_tree_add_item(tree, ofp_vport_action, tvb, *offset, len, FALSE);
+    proto_tree *vport_action_tree = proto_item_add_subtree(vport_action_item, ett_ofp_vport_action);
+    
+    if (!(len == 8 || len == 16)) { 
+        add_child_str(vport_action_tree, ofp_vport_action_unknown, tvb, offset, len, "Invalid Action Length");
+        return -1;
+    }
+    
+    add_child( vport_action_tree, ofp_vport_action_type, tvb, offset, 2 );
+    add_child( vport_action_tree, ofp_vport_action_len, tvb, offset, 2 );
+    
+    switch ( type ) {
+    case OFPPAT_OUTPUT:
+        add_child_str(vport_action_tree, ofp_action_warn, tvb, offset, len, "Unexpected Message, OFPPAT_OUTPUT");
+        // OR: dissect_action_output(vport_action_tree, tvb, offset); ?
+        break;
+    case OFPPAT_POP_MPLS:
+        dissect_dl_type(vport_action_tree, ofp_match_nw_proto, tvb, offset);
+        /* action_pop_mpls flags */
+        dissect_vport_action_pop_mpls(tvb, pinfo, vport_action_tree, offset, 1);
+        /* pad[4] */
+        dissect_pad(vport_action_tree, offset, 4);
+        /* pad[5] */
+        dissect_pad(vport_action_tree, offset, 5);
+        break;    
+    case OFPPAT_PUSH_MPLS:
+        /* label_out */
+        add_child( vport_action_tree, ofp_vport_action_push_mpls_label, tvb, offset, 4 );
+        /* exp */
+        add_child (vport_action_tree, ofp_vport_action_push_mpls_exp, tvb, offset, 1);
+        /* ttl */
+        add_child (vport_action_tree, ofp_vport_action_push_mpls_ttl, tvb, offset, 1);
+        /* flags */
+        dissect_vport_action_push_mpls(tvb, pinfo, vport_action_tree, offset, 1);
+        /* pad[1] */
+        dissect_pad(vport_action_tree, offset, 1);
+        /* pad[4] */ 
+        dissect_pad(vport_action_tree, offset, 4);
+        break;
+
+    case OFPPAT_SET_MPLS_EXP:
+        /* exp */
+        add_child (vport_action_tree, ofp_vport_action_push_mpls_exp, tvb, offset, 1); // ofp_vport_action_push_mpls_exp has the same struct...
+        /* pad[3] */ 
+        dissect_pad(vport_action_tree, offset, 3);
+        break;    
+    case OFPPAT_SET_MPLS_LABEL:
+    /*    uint32_t label_out; */
+        add_child( vport_action_tree, ofp_vport_action_push_mpls_label, tvb, offset, 4 ); // ofp_vport_action_push_mpls_label has the same struct...
+        break;    
+
+    default:
+        add_child( vport_action_tree, ofp_vport_action_unknown, tvb, offset, 0 );
+        return -1;
+    }
+
+    /* return the number of bytes which were consumed */
+    return *offset - offset_start;
+}
+
+static void dissect_vport_action_array(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint len, guint offset)
+{
+    guint total_len = len - offset;
+    
+    proto_item* vport_action_item = proto_tree_add_item(tree, ofp_vport_action_output, tvb, offset, total_len, FALSE);
+    proto_tree* vport_action_tree = proto_item_add_subtree(vport_action_item, ett_ofp_vport_action_output);
+    
+    if (total_len == 0 )
+        add_child_str(vport_action_tree, ofp_vport_action_warn, tvb, &offset, 0, "No actions were specified");
+    else if (offset > len ) {
+        /* not enough bytes => wireshark will already have reported the error */
+    }
+    else {
+        guint offset_action_start = offset;
+        guint num_actions = 0;
+        while ( total_len > 0 ) {
+            num_actions += 1;
+            int ret = dissect_vport_action(vport_action_tree, vport_action_item, tvb, pinfo, &offset);
+            if (ret < 0 )
+                break; /* stop if we run into an action we couldn't dissect */
+            else
+                total_len -= ret;        
+        }
+        proto_tree_add_uint(vport_action_tree, ofp_vport_action_num, tvb, offset_action_start, 0, num_actions);
+    }
 }
 
 static void dissect_ethernet(tvbuff_t *next_tvb, packet_info *pinfo, proto_tree *data_tree) {
@@ -2512,9 +2962,48 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
                 snprintf(str, STR_LEN, "No ports were specified");
                 add_child_str(sf_port_tree, ofp_switch_features_ports_warn, tvb, &offset, 0, str);
             }
+            
             break;
         }
+        
+        case OFPT_VPORT_TABLE_FEATURES_REQUEST: {
+            /* nothing else in this packet type */
+            break;
+        }
+        case OFPT_VPORT_TABLE_FEATURES_REPLY: {
+            type_item = proto_tree_add_item(ofp_tree, ofp_vport_table_features, tvb, offset, -1, FALSE);
+            type_tree = proto_item_add_subtree(type_item, ett_ofp_vport_table_features);
 
+            /* Vport table max ports */
+            add_child(type_tree, ofp_vport_table_max_vports, tvb, &offset, 4);
+            /* actions */
+            dissect_vport_actions(tvb, pinfo, type_tree, &offset, 4);
+            /* max chain depth */
+            add_child(type_tree, ofp_vport_table_max_chain_depth, tvb, &offset, 2);
+            /* Mixed chaining */
+            add_child(type_tree, ofp_vport_table_mixed_chaining, tvb, &offset, 1);
+            /* Pad */
+            dissect_pad(type_tree, &offset, 5);
+            break;
+        }
+        case OFPT_VPORT_MOD: {
+            type_item = proto_tree_add_item(ofp_tree, ofp_vport_mod, tvb, offset, -1, FALSE);
+            type_tree = proto_item_add_subtree(type_item, ett_ofp_vport_mod);
+
+            /* Vport no. */
+            add_child(type_tree, ofp_vport_mod_vport, tvb, &offset, 4);
+            /* Parent port no. */
+            add_child(type_tree, ofp_vport_mod_parent_port, tvb, &offset, 4);
+            /* Command */
+            add_child(type_tree, ofp_vport_mod_command, tvb, &offset, 2);
+            /* pad */
+            dissect_pad(tree, &offset, 6);
+            /* Actions */
+            dissect_vport_action_array(tvb, pinfo, type_tree, len, offset);
+            
+            break;
+        }
+        
         case OFPT_GET_CONFIG_REQUEST:
             /* nothing else in this packet type */
             break;
@@ -2599,7 +3088,7 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
             
             /* display in port */
             // FIXME: bug in dissect_port for latest version
-            dissect_port(type_tree, ofp_packet_out_in_port, tvb, &offset);
+            dissect_port(type_tree, ofp_packet_out_in_port, tvb, &offset, 16);
             
             /* pull out actions len */
             guint16 actions_len = tvb_get_ntohs( tvb, offset);
@@ -2649,9 +3138,10 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
             }
             
             /* add the output port */
-            dissect_port(type_tree, ofp_flow_mod_out_port, tvb, &offset );
+            dissect_port(type_tree, ofp_flow_mod_out_port, tvb, &offset, 16 );
             dissect_pad(type_tree, &offset, 2);
             add_child(type_tree, ofp_flow_mod_reserved, tvb, &offset, 4);
+
             dissect_action_array(tvb, pinfo, type_tree, len, offset);
             break;
         }
@@ -2663,7 +3153,7 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
             dissect_port_mod(type_tree, type_item, tvb, pinfo, &offset);
             break;
         }
-
+        
         case OFPT_STATS_REQUEST: {
             type_item = proto_tree_add_item(ofp_tree, ofp_stats_request, tvb, offset, -1, FALSE);
             type_tree = proto_item_add_subtree(type_item, ett_ofp_stats_request);
@@ -2711,6 +3201,7 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
 
             case OFPST_TABLE:
             case OFPST_PORT:
+            case OFPST_PORT_TABLE:
                 /* no body for these types of requests */
                 break;
 
@@ -2811,8 +3302,8 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
                     proto_item *port_item = proto_tree_add_item(type_tree, ofp_port_stats, tvb, offset, -1, FALSE);
                     proto_tree *port_tree = proto_item_add_subtree(port_item, ett_ofp_port_stats);
 
-                    dissect_port(port_tree, ofp_port_stats_port_no, tvb, &offset);
-                    dissect_pad(port_tree, &offset, 6);
+                    dissect_port(port_tree, ofp_port_stats_port_no, tvb, &offset, 32);
+                    dissect_pad(port_tree, &offset, 4);
                     add_child(port_tree, ofp_port_stats_rx_packets, tvb, &offset, 8);
                     add_child(port_tree, ofp_port_stats_tx_packets, tvb, &offset, 8);
                     add_child(port_tree, ofp_port_stats_rx_bytes, tvb, &offset, 8);
@@ -2825,9 +3316,23 @@ static void dissect_openflow_message(tvbuff_t *tvb, packet_info *pinfo, proto_tr
                     add_child(port_tree, ofp_port_stats_rx_over_err, tvb, &offset, 8);
                     add_child(port_tree, ofp_port_stats_rx_crc_err, tvb, &offset, 8);
                     add_child(port_tree, ofp_port_stats_collisions, tvb, &offset, 8);
+                    add_child(port_tree, ofp_port_stats_mpls_ttl0_dropped, tvb, &offset, 8);
                 }
                 break;
             }
+
+            case OFPST_PORT_TABLE: { 
+                proto_item *port_table_item = proto_tree_add_item(type_tree, ofp_port_table_stats, tvb, offset, -1, FALSE);
+                proto_tree *port_table_tree = proto_item_add_subtree(port_table_item, ett_ofp_port_table_stats);
+                
+                add_child(port_table_tree, ofp_port_table_stats_max_vports, tvb, &offset, 4);
+                add_child(port_table_tree, ofp_port_table_stats_active_vports, tvb, &offset, 4);
+                add_child(port_table_tree, ofp_port_table_stats_lookup_count, tvb, &offset, 8);
+                add_child(port_table_tree, ofp_port_table_stats_port_match_count, tvb, &offset, 8);
+                add_child(port_table_tree, ofp_port_table_stats_chain_match_count, tvb, &offset, 8);
+                
+                break;
+            }   
 
             case OFPST_VENDOR: {
                 proto_item* vendor_item = proto_tree_add_item(type_tree, ofp_vendor_stats, tvb, offset, -1, FALSE);

@@ -254,7 +254,8 @@ parse_nhlfe(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur, struct mpls_switch *sw, 
 
 
 
-/*static void
+#ifndef NS3
+static void
 printIlmEntry(ilmPtr cur) {
 
     if (cur == NULL) return;
@@ -262,7 +263,8 @@ printIlmEntry(ilmPtr cur) {
 	printf("	in_port: %u\n", cur->in_port);
 	printf("	mpls_label: %u\n", cur->mpls_label);
     printf("======= \n");
-}*/
+}
+#endif
 
 static ilmPtr
 parse_ilm(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur, struct mpls_switch *sw) {
@@ -320,7 +322,8 @@ parse_ilm(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur, struct mpls_switch *sw) {
 
 }
 
-/*static void
+#ifndef NS3
+static void
 printFtnEntry(ftnPtr cur) {
 	struct in_addr addr;
 
@@ -346,7 +349,8 @@ printFtnEntry(ftnPtr cur) {
     printf("	tp_dst: %u\n", cur->FEC.tp_dst);
     printf("	-------------------------:\n");
     printf("============================== \n");
-}*/
+}
+#endif
 
 static ftnPtr
 parse_ftn(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur, struct mpls_switch *sw) {
