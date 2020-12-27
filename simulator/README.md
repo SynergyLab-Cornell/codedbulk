@@ -1,126 +1,68 @@
+----- Network Coding Project ns-3 simulation codes -----
 
-The Network Simulator, Version 3
-================================
+This file explains how to run the network coding project
+experiments in ns-3.30. The codes have been verified under
+Fedora 27, a Linux operating system.
 
-## Table of Contents:
+Table of Contents:
+------------------
 
-1) [An overview](#an-open-source-project)
-2) [Building ns-3](#building-ns-3)
-3) [Running ns-3](#running-ns3)
-4) [Getting access to the ns-3 documentation](#getting-access-to-the-ns-3-documentation)
-5) [Working with the development version of ns-3](#working-with-the-development-version-of-ns-3)
+1) Requirements
+2) Installation
+3) Running the Experiments
 
-Note:  Much more substantial information about ns-3 can be found at
-http://www.nsnam.org
 
-## An Open Source project
+1) Requirements
+---------------
 
-ns-3 is a free open source project aiming to build a discrete-event
-network simulator targeted for simulation research and education.   
-This is a collaborative project; we hope that
-the missing pieces of the models we have not yet implemented
-will be contributed by the community in an open collaboration
-process.
+The first program needed is ns3.30, which can be downloaded
+from
+    https://www.nsnam.org/ns-3-27/
+Once the ns-allinone-3.30.tar.bz2 is extracted, there will
+be a ns-allinone-3.30 folder. Inside the folder there will
+be ns-3.30.
 
-The process of contributing to the ns-3 project varies with
-the people involved, the amount of time they can invest
-and the type of model they want to work on, but the current
-process that the project tries to follow is described here:
-http://www.nsnam.org/developers/contributing-code/
+In ns-3.30, we will need to install the OpenFlow support,
+the instructions can be found at
+    https://www.nsnam.org/docs/release/3.30/models/html/openflow-switch.html
 
-This README excerpts some details from a more extensive
-tutorial that is maintained at:
-http://www.nsnam.org/documentation/latest/
+After the installation, there should be a folder named 
+``openflow'' under ``ns-3.30''. Then we can configure ns-3.30
+to support OpenFlow by typing
+    ./waf configure --with-openflow=openflow
 
-## Building ns-3
+Then we can test if ns-3.30 is successfully settled by compiling
+    ./waf
 
-The code for the framework and the default models provided
-by ns-3 is built as a set of libraries. User simulations
-are expected to be written as simple programs that make
-use of these ns-3 libraries.
+It is possible that the system may be lack of some libraries.
+Follow the below instructions to fix the library dependency
+based on the running system
+    https://www.nsnam.org/wiki/Installation
 
-To build the set of default libraries and the example
-programs included in this package, you need to use the
-tool 'waf'. Detailed information on how to use waf is
-included in the file doc/build.txt
+After a successful compilation, ns-3.30 will list a list of 
+built modules.
 
-However, the real quick and dirty way to get started is to
-type the command
-```shell
-./waf configure --enable-examples
-```
 
-followed by
+2) Installation
+---------------
+To install the network coding layer ns-3 implementation,
+copy the files in the folder ``ns-3'' into the previously
+compiled ``ns-3.30'' folder. And compile ns-3.30 using the
+same commands
+    ./waf configure -d optimized --with-openflow=openflow
+    ./waf
 
-```shell
-./waf
-```
 
-in the directory which contains this README file. The files
-built will be copied in the build/ directory.
+3) Running the Experiments
+--------------------------
+The experiments are within the folder ``scratch.'' To run
+individual experiments, just type
+    ./waf --run=<experiment_name>
 
-The current codebase is expected to build and run on the
-set of platforms listed in the [release notes](RELEASE_NOTES)
-file.
+Shell scripts to run existing experiments are available in
+the folder ``experiment.'' Go into the folder and run the
+corresponding scripts by
+    ./<script_name>
+such as
+    ./varying_src_dst.sh
 
-Other platforms may or may not work: we welcome patches to
-improve the portability of the code to these other platforms.
-
-## Running ns-3
-
-On recent Linux systems, once you have built ns-3 (with examples
-enabled), it should be easy to run the sample programs with the
-following command, such as:
-
-```shell
-./waf --run simple-global-routing
-```
-
-That program should generate a `simple-global-routing.tr` text
-trace file and a set of `simple-global-routing-xx-xx.pcap` binary
-pcap trace files, which can be read by `tcpdump -tt -r filename.pcap`
-The program source can be found in the examples/routing directory.
-
-## Getting access to the ns-3 documentation
-
-Once you have verified that your build of ns-3 works by running
-the simple-point-to-point example as outlined in 3) above, it is
-quite likely that you will want to get started on reading
-some ns-3 documentation.
-
-All of that documentation should always be available from
-the ns-3 website: http:://www.nsnam.org/documentation/.
-
-This documentation includes:
-
-  - a tutorial
-
-  - a reference manual
-
-  - models in the ns-3 model library
-
-  - a wiki for user-contributed tips: http://www.nsnam.org/wiki/
-
-  - API documentation generated using doxygen: this is
-    a reference manual, most likely not very well suited
-    as introductory text:
-    http://www.nsnam.org/doxygen/index.html
-
-## Working with the development version of ns-3
-
-If you want to download and use the development version of ns-3, you
-need to use the tool `git`. A quick and dirty cheat sheet is included
-in the manual, but reading through the git
-tutorials found in the Internet is usually a good idea if you are not
-familiar with it.
-
-If you have successfully installed git, you can get
-a copy of the development version with the following command:
-```shell
-git clone https://gitlab.com/nsnam/ns-3-dev.git
-```
-
-However, we recommend to follow the Gitlab guidelines for starters,
-that includes creating a Gitlab account, forking the ns-3-dev project
-under the new account's name, and then cloning the forked repository.
-You can find more information in the manual [link].
