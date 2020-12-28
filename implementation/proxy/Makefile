@@ -25,12 +25,12 @@ TEST_EXECUTABLES=$(TEST_SOURCES:$(TEST_SOURCE_DIR)/%.cc=$(EXECUTABLE_DIR)/test-%
 CC=g++
 CFLAGS=-c -g -O3 -pg
 
-prog_ICodedBulkLUDE_DIRS=../shared/sources/ sources/
+prog_INCLUDE_DIRS=../shared/sources/ sources/
 prog_LIBRARY_DIRS=
 prog_RUNTIME_LIB_DIRS=
 prog_LIBS=
 
-CPPFLAGS += $(foreach includedir,$(prog_ICodedBulkLUDE_DIRS),-I$(includedir))
+CPPFLAGS += $(foreach includedir,$(prog_INCLUDE_DIRS),-I$(includedir))
 LDFLAGS  += $(foreach librarydir,$(prog_LIBRARY_DIRS),-L$(librarydir))
 LDFLAGS  += $(foreach rt_libdir,$(prog_RUNTIME_LIB_DIRS),-Wl,-rpath,$(rt_libdir))
 LDFLAGS  += $(foreach library,$(prog_LIBS),-l$(library))
