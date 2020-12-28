@@ -123,12 +123,12 @@ int main()
     conf.env.append_value('NS3_MODULE_PATH',os.path.abspath(os.path.join(conf.env['WITH_OPENFLOW'],'build','default')))
     conf.env.append_value('NS3_MODULE_PATH',os.path.abspath(os.path.join(conf.env['WITH_OPENFLOW'],'lib')))
     
-    conf.env['ICodedBulkLUDES_OPENFLOW'] = [
+    conf.env['INCLUDES_OPENFLOW'] = [
         os.path.abspath(os.path.join(conf.env['WITH_OPENFLOW'],'include'))]
     conf.env['LIBPATH_OPENFLOW'] = [
         os.path.abspath(os.path.join(conf.env['WITH_OPENFLOW'],'build','default')),
         os.path.abspath(os.path.join(conf.env['WITH_OPENFLOW'],'lib'))]
-    
+
     conf.env['DEFINES_OPENFLOW'] = ['NS3_OPENFLOW']
 
     conf.env['OPENFLOW'] = conf.check_nonfatal(fragment=test_code, lib='openflow', 

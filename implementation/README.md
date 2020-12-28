@@ -16,9 +16,6 @@ To compile the codes, the system needs to have GNU Make
     https://www.gnu.org/software/make/
 and GNU g++ that supports c++11 or more recent versions.
 
-The folloing descriptions are valid for each implementation
-distribution such as with_thread_pool.
-
 
 ## 2. Deployment and Compilation
 

@@ -1,7 +1,8 @@
 # Makefile wrapper for waf
 
 all:
-	./waf
+	cd openflow && make
+	make configure
 
 # free free to change this part to suit your requirements
 configure:
