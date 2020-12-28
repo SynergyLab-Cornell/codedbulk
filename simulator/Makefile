@@ -3,6 +3,7 @@
 all:
 	cd openflow && make
 	make configure
+	./waf build
 
 # free free to change this part to suit your requirements
 configure:
