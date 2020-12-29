@@ -1,0 +1,15 @@
+int total_generated_dst = 0;
+int chosen_dst_host;
+while (total_generated_dst == 0) {
+  for (int j = 0; j < MAX_DSTS_PER_SRC; ++j) {
+    if(unif_rv->GetValue(0.0,1.0) < ADD_DST_RATE) {
+      continue;
+    }
+    do {
+      chosen_dst_host = unif_rv->GetValue(0,TOTAL_HOSTS);
+    } while (chosen_dst_host == chosen_src_host);
+    if( traffic->addDst(map_host_to_sw[chosen_dst_host]) ) {
+      ++total_generated_dst;
+    }
+  }
+}

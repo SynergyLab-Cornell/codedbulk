@@ -1,0 +1,32 @@
+#ifdef __TRAFFIC_SETUP__
+#ifdef TOTAL_NUM_TRAFFIC // total number of generated traffic
+#ifdef MAX_DSTS_PER_SRC  // maximum number of destinations that a source will multicast to
+#ifdef TOTAL_HOSTS
+
+#define ADD_DST_RATE 0.5 // the probability to generate a destination
+
+// only generate the traffic when the traffic is not yet generated
+if( traffic_manager->GetTrafficNotGenerated() ) {
+  int chosen_src_host;
+  Ptr<CodedBulkTraffic> traffic;
+  
+  Ptr<UniformRandomVariable> unif_rv = CreateObject<UniformRandomVariable> ();
+
+  for (int i = 0; i < TOTAL_NUM_TRAFFIC; ++i) {
+    chosen_src_host = unif_rv->GetValue(0,TOTAL_HOSTS);
+  
+    traffic = traffic_manager->addCodedBulkTraffic(map_host_to_sw[chosen_src_host]);
+    traffic->ApplyCodedBulk(true);
+    traffic->SetUnicast(false);
+    traffic->SetPriority(CodedBulkTraffic::Bulk);
+
+    #include "traffic_generate_one_multicast.cc_part"
+  }
+
+  traffic_manager->SetTrafficNotGenerated(false);
+}
+
+#endif
+#endif
+#endif
+#endif

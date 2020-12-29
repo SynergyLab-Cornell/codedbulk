@@ -1,1 +1,0 @@
-../../../controller/auto_gen.sh

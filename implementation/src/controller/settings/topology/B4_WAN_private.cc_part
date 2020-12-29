@@ -1,0 +1,53 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+#ifdef __TOPOLOGY_MACROS__
+
+#define TOTAL_SWITCHES 13
+#define TOTAL_HOSTS 13
+graph->addNodes(TOTAL_SWITCHES);
+
+// B4 topology according to 
+// https://datatracker.ietf.org/meeting/99/materials/slides-99-panrg-sdn-for-public-internet/
+
+// B4 example
+
+// Node 5 not updated yet!!
+
+REG_SW_ADDR( 0,"172.31.29.249")     // Seoul - I
+REG_SW_ADDR( 1,"172.31.4.139")    // Singapore - I
+REG_SW_ADDR( 2,"172.31.18.221")      // Oregon-I
+REG_SW_ADDR( 3,"172.31.16.97")      // Ohio - II
+REG_SW_ADDR( 4,"172.31.26.29")       // Ohio - I
+REG_SW_ADDR( 5,"172.31.53.181")    // N Virginia - I
+REG_SW_ADDR( 6,"172.31.53.120")     // N Virginia - II
+REG_SW_ADDR( 7,"172.31.49.74")    // N Virginia - III
+REG_SW_ADDR( 8,"172.31.13.255")       // Ireland - I
+REG_SW_ADDR( 9,"172.31.36.149")    // Paris - I
+REG_SW_ADDR(10,"172.31.0.191")    // London - I
+REG_SW_ADDR(11,"172.31.24.59")     // Frankfurt - I
+REG_SW_ADDR(12,"172.31.4.208")      // Sao Paulo - I
+
+// link the switches
+LINK_SW_TO_SW_IP( 0, "172.31.29.249",  1, "172.31.4.139",  1.0)
+LINK_SW_TO_SW_IP( 0, "172.31.17.173",  3, "172.31.16.97",  1.0)
+LINK_SW_TO_SW_IP( 1, "172.31.4.149",   2, "172.31.18.221", 1.0)
+LINK_SW_TO_SW_IP( 2, "172.31.23.112",  3, "172.31.24.39",  1.0)
+LINK_SW_TO_SW_IP( 2, "172.31.21.117",  4, "172.31.26.29",  1.0)
+LINK_SW_TO_SW_IP( 2, "172.31.21.51",  12, "172.31.3.65",   1.0)
+LINK_SW_TO_SW_IP( 3, "172.31.30.140",  4, "172.31.30.83",  1.0)
+LINK_SW_TO_SW_IP( 3, "172.31.21.12",   5, "172.31.53.181", 1.0)
+LINK_SW_TO_SW_IP( 3, "172.31.16.151", 12, "172.31.4.208",  1.0)
+LINK_SW_TO_SW_IP( 4, "172.31.20.26",   6, "172.31.53.120", 1.0)
+LINK_SW_TO_SW_IP( 4, "172.31.18.70",   7, "172.31.57.228", 1.0)
+LINK_SW_TO_SW_IP( 5, "172.31.52.161",  6, "172.31.56.81",  1.0)
+LINK_SW_TO_SW_IP( 5, "172.31.56.10",   7, "172.31.49.74",  1.0)
+LINK_SW_TO_SW_IP( 6, "172.31.61.234",  7, "172.31.57.56",  1.0)
+LINK_SW_TO_SW_IP( 6, "172.31.53.252",  9, "172.31.36.149", 1.0)
+LINK_SW_TO_SW_IP( 7, "172.31.62.220", 10, "172.31.0.191",  1.0)
+LINK_SW_TO_SW_IP( 7, "172.31.57.113", 12, "172.31.6.159",  1.0)
+LINK_SW_TO_SW_IP( 8, "172.31.13.255",  9, "172.31.40.32",  1.0)
+LINK_SW_TO_SW_IP( 8, "172.31.4.70",   10, "172.31.11.167", 1.0)
+LINK_SW_TO_SW_IP( 9, "172.31.34.28",  10, "172.31.6.130",  1.0)
+LINK_SW_TO_SW_IP( 9, "172.31.35.72",  11, "172.31.17.220", 1.0)
+LINK_SW_TO_SW_IP(10, "172.31.0.38",   11, "172.31.24.59",  1.0)
+
+#endif // __TOPOLOGY_MACROS__

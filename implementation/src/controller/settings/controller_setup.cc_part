@@ -1,0 +1,6 @@
+/* Author:  Shih-Hao Tseng (st688@cornell.edu) */
+  Ptr<CodedBulkController> CodedBulk_controller = Create<CodedBulkController> ();
+  Ptr<CodedBulkGraph> graph = CodedBulk_controller->GetCodedBulkGraph ();
+  Ptr<CodedBulkTrafficManager> traffic_manager = CodedBulk_controller->GetCodedBulkTrafficManager ();
+  Ptr<OpenFlowRoutingController> controller = Create<OpenFlowRoutingController> ();
+  CodedBulk_controller->SetOpenFlowController (controller);

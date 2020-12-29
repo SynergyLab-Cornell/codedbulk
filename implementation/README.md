@@ -1,6 +1,6 @@
 # CodedBulk c++ implementation codes
 
-This file explains how to run the c++ implementation of the network coding project. The codes have been verified under Linux operating systems Fedora 27 and Ubuntu 14.04.01 LTS.
+This file explains how to run the c++ implementation of the network coding project. The codes have been verified under Linux operating systems Fedora 32 and Ubuntu 14.04.01 LTS.
 
 ## Table of Contents:
 
@@ -16,11 +16,12 @@ To compile the codes, the system needs to have GNU Make
     https://www.gnu.org/software/make/
 and GNU g++ that supports c++11 or more recent versions.
 
+The 
+
 
 ## 2. Deployment and Compilation
 
-Choose the distribution of interest, e.g., with_thread_pool,
-and go into the folder controller/.
+Go into the folder controller/.
 
 Specify the IP addresses of the machines that will run the 
 implementations in the topology file, which is under
