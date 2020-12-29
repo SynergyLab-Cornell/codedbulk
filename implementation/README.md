@@ -21,7 +21,7 @@ The
 
 ## 2. Deployment and Compilation
 
-Go into the folder controller/.
+Go into the folder src/controller/.
 
 Specify the IP addresses of the machines that will run the 
 implementations in the topology file, which is under
