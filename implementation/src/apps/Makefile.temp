@@ -1,0 +1,113 @@
+# Author: Shih-Hao Tseng <st688@cornell.edu>
+#NODE=$(shell cat ../../.node_info)
+
+PROXY_SOURCE_DIR=../../proxy/sources
+PROXY_BUILD_DIR=../../proxy/build
+
+MA_SOURCE_DIR=../../multicast_agent/sources
+MA_BUILD_DIR=../../multicast_agent/build
+
+SHARED_SOURCE_DIR=../../shared/sources
+SHARED_BUILD_DIR=../../shared/build
+
+APP_SOURCES=$(shell find 'v$(NODE)' -name 'traffic*.cc')
+APP_EXECS=$(APP_SOURCES:v$(NODE)/%.cc=exec-%)
+APP_SEND=$(shell find '.' -name 'exec-traffic*_send')
+APP_RECV=$(shell find '.' -name 'exec-traffic*_recv')
+
+PROXY_SOURCES=$(shell find $(PROXY_SOURCE_DIR)/ -name '*.cc')
+PROXY_OBJECTS=$(PROXY_SOURCES:$(PROXY_SOURCE_DIR)/%.cc=$(PROXY_BUILD_DIR)/%.o)
+
+MA_SOURCES=$(shell find $(MA_SOURCE_DIR)/ -name '*.cc')
+MA_OBJECTS=$(MA_SOURCES:$(MA_SOURCE_DIR)/%.cc=$(MA_BUILD_DIR)/%.o)
+
+SHARED_SOURCES=$(shell find $(SHARED_SOURCE_DIR)/ -name '*.cc')
+SHARED_OBJECTS=$(SHARED_SOURCES:$(SHARED_SOURCE_DIR)/%.cc=$(SHARED_BUILD_DIR)/%.o)
+
+EXECUTABLES=$(shell find . -name 'exec-*')
+
+RESULTS=$(shell find 'results' -not -name '__PLACE_HOLDER__' -type f)
+
+LOCAL_SOCKETS=$(shell find ../shared/local_socket/ -name 's*')
+
+CC=g++
+CFLAGS=-c -g -O3 -pg
+
+prog_INCLUDE_DIRS=../../proxy/sources/ ../../multicast_agent/sources/ ../../shared/sources/
+prog_LIBRARY_DIRS=
+prog_RUNTIME_LIB_DIRS=
+prog_LIBS=
+
+CPPFLAGS += $(foreach includedir,$(prog_INCLUDE_DIRS),-I$(includedir))
+LDFLAGS  += $(foreach librarydir,$(prog_LIBRARY_DIRS),-L$(librarydir))
+LDFLAGS  += $(foreach rt_libdir,$(prog_RUNTIME_LIB_DIRS),-Wl,-rpath,$(rt_libdir))
+LDFLAGS  += $(foreach library,$(prog_LIBS),-l$(library))
+
+CPPFLAGS += -Wno-misleading-indentation -pthread
+
+all:
+	make clean
+	make exec_proxy
+	make exec_apps
+
+endexp:
+	pkill -f exec-proxy &
+	$(foreach recv,$(APP_RECV),pkill -f $(recv) &)
+	$(foreach send,$(APP_SEND),pkill -f $(send) &)
+
+endp:
+	pkill -f exec-proxy &
+
+endr:
+	$(foreach recv,$(APP_RECV),pkill -f $(recv) &)
+
+ends:
+	$(foreach send,$(APP_SEND),pkill -f $(send) &)
+
+patchp:
+	cd v$(NODE) && \
+	patch -p0 < ../../proxy.patch
+
+resumep:
+	cd v$(NODE) && \
+	patch -R -p0 < ../../proxy.patch
+
+gprofp:
+	gprof exec-proxy > proxy_gprof
+
+.PRECIOUS: $(PROXY_OBJECTS) $(MA_OBJECTS) $(SHARED_OBJECTS)
+
+exec_proxy: $(PROXY_OBJECTS) $(SHARED_OBJECTS)
+	$(CC) v$(NODE)/proxy.cc $(PROXY_OBJECTS) $(SHARED_OBJECTS) $(LDFLAGS) $(CPPFLAGS) -O3 -pg -o exec-proxy
+
+exec_apps: $(APP_EXECS)
+
+exec-traffic%: v$(NODE)/traffic%.cc $(MA_OBJECTS) $(SHARED_OBJECTS)
+	$(CC) $< $(MA_OBJECTS) $(SHARED_OBJECTS) $(LDFLAGS) $(CPPFLAGS) -O3 -o $@
+
+$(PROXY_BUILD_DIR)/%.o: $(PROXY_SOURCE_DIR)/%.cc
+	$(CC) $(LDFLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+$(MA_BUILD_DIR)/%.o: $(MA_SOURCE_DIR)/%.cc
+	$(CC) $(LDFLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+$(SHARED_BUILD_DIR)/%.o: $(SHARED_SOURCE_DIR)/%.cc
+	$(CC) $(LDFLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+clean:
+ifneq ($(EXECUTABLES),)
+	rm $(EXECUTABLES)
+endif
+
+clears:
+	$(foreach socket,$(LOCAL_SOCKETS),unlink $(socket);)
+
+cleanresults:
+ifneq ($(RESULTS),)
+	rm $(RESULTS)
+endif
+
+clearo:
+	cd ../../shared && make clean
+	cd ../../proxy && make clean
+	cd ../../multicast_agent && make clean

@@ -3,8 +3,9 @@
 */executable/*
 !*/executable/__PLACE_HOLDER__
 */tests/*
-apps/*/exec-*
-apps/*/gmon*
-!apps/*/results/__PLACE_HOLDER__
+src/apps/*/exec-*
+src/apps/*/gmon*
+!src/apps/*/results/__PLACE_HOLDER__
 .node_info
-apps/*
+src/apps/*
+*.o

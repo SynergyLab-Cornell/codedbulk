@@ -31,7 +31,7 @@ scripts = [
 #'controller/workloads/%s-200Mbps-0.15.txt' % network_name,
 #'controller/workloads/%s-200Mbps-0.2.txt % network_name'
 #'shared/sources/system_parameters.h'
-#'proxy/sources/CodedBulk-codec.h'
+#'proxy/sources/NC-codec.h'
 ]
 
 def wait_and_print(process):
@@ -54,14 +54,14 @@ def update_scripts():
     parallel = []
     for index, ip in enumerate(server_ips.keys()):
         for script in scripts:
-            local_folder = 'codedbulk_%s' % network_name
+            local_folder = 'nc_%s' % network_name
             if os.path.exists('deployment/core/%s' % script):
                 local_folder = 'core'
             scp = Popen(['scp', '-i', 
                 'keys/aws_%d.pem' % index, '-r',
                 'deployment/%s/%s' % (local_folder.lower(), script),
                 ( '%s@%s:' % (server_account, ip) )+
-                ( '~/codedbulk_%s/%s' % (network_name.lower(), script) )
+                ( '~/nc_%s/%s' % (network_name.lower(), script) )
             ], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
             parallel.append(scp)
     for scp in parallel:
@@ -70,7 +70,7 @@ def update_scripts():
 
 if __name__ == '__main__':
     os.chdir(os.getcwd())
-    os.system('cd deployment/codedbulk_%s' % network_name.lower())
+    os.system('cd deployment/nc_%s' % network_name.lower())
     os.system('git pull')
     os.system('cd -')
     update_scripts()

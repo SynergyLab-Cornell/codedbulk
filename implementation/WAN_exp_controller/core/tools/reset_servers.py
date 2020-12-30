@@ -28,7 +28,7 @@ commands = [
 'sudo pkill -f exec-\n',
 'sudo pkill -f exec-\n',
 'sudo pkill -f exec-\n',
-'cd ~/codedbulk_%s/WAN_exp_controller\n' % network_name.lower(),
+'cd ~/nc_%s/WAN_exp_controller\n' % network_name.lower(),
 'screen -d -m sudo python remote_server.py\n',
 'exit\n'
 ]

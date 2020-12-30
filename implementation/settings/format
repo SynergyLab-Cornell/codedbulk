@@ -1,0 +1,3 @@
+workloads:
+Line 1: <#Nodes> <#Flows>
+Line N: <Flow ID> <Time of arrival (ms)> <Source ID> <Destination ID> <Flow Size (KB)>
