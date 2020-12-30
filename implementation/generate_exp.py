@@ -187,6 +187,9 @@ def generate_exp(network_name):
     ip_list_generator(network_name)
     shutil.move('tmp/%s.cc_part' % network_name, 'src/controller/settings/topology/%s.cc_part' % network_name)
 
+    #TODO
+    # generate codes
+
     print('Generating WAN controller for experiment \'%s\' under WAN_exp_controller/exp_%s' % (network_name, network_name))
     # create root folder
     # delete the existing one

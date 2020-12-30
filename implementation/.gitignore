@@ -9,3 +9,4 @@ src/apps/*/gmon*
 .node_info
 src/apps/*
 *.o
+WAN_exp_controller/exp_*

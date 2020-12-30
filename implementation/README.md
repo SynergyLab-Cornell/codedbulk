@@ -5,7 +5,8 @@ This file explains how to run the c++ implementation of the network coding proje
 ## Table of Contents:
 
 1. Requirements
-2. WAN Experiment Generation
+2. Experiment Setup
+3. WAN Experiment Generation
 
 ## 1. Requirements
 
@@ -15,7 +16,15 @@ and GNU g++ that supports c++11 or more recent versions.
 
 The WAN experiment controller requires Python 3.
 
-## 2. WAN Experiment Generation
+## 2. Experiment Setup
 
-The script for automatic 
+To create a CodedBulk experiment, add a folder under the folder 'settings' with a desired name (referred as network name in the following context).
+
+link.csv describes the network topology.
+public_ips and private_ips are the public/private ips held by each interface at each node.
+The workload 
+
+## 3. WAN Experiment Generation
+
+
 
