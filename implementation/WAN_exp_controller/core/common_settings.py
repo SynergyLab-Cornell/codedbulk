@@ -19,4 +19,4 @@ scenarios[3] = 'coded_multicast'
 #scenarios[5] = 'Steiner_tree_store-and-forward_disk'
 scenarios[6] = 'Steiner_tree_store-and-forward_memory'
 
-total_cases=5
+total_cases=len(scenarios)

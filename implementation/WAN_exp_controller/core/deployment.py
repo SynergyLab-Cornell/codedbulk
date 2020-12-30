@@ -18,7 +18,6 @@
 import sys
 
 def deploy_common():
-    # files:
     # apps/shared/local_socket/
     # controller/auto_gen.sh
     # controller/build/
@@ -40,6 +39,7 @@ def deploy_common():
     pass
 
 def deploy(exp):
+    deploy_common()
     # controller/main/traffic-gen-<exp>.cc
     # controller/settings/topology/<exp>.cc_part
     # controller/workloads/<exp>-*
