@@ -53,7 +53,7 @@ def reset_servers():
     parallel = []
     for index, ip in enumerate(server_ips.keys()):
         ssh = Popen(['ssh', '-T', '-i', 
-            'keys/aws_%d.pem' % index,
+            'keys/node_%d.pem' % index,
             '%s@%s' % (server_account, ip)
         ], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
         print('server %d connected' % index)

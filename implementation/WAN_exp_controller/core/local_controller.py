@@ -198,7 +198,7 @@ def download_results(exp_name):
     for index, ip in enumerate(server_ips.keys()):
         if lack_of_traffic_summary:
             scp = Popen(['scp', '-i', 
-                'keys/aws_%d.pem' % index,
+                'keys/node_%d.pem' % index,
                 ( '%s@%s:' % (server_account, ip) )+
                 ( '~/apps/%s/traffic_summary.txt' % exp_name ),
                 'results/raw/%s/' % exp_name
@@ -207,7 +207,7 @@ def download_results(exp_name):
             lack_of_traffic_summary = False
         os.system('mkdir -p results/raw/%s/v%d' % (exp_name,index))
         scp = Popen(['scp', '-i', 
-            'keys/aws_%d.pem' % index,
+            'keys/node_%d.pem' % index,
             ( '%s@%s:' % (server_account, ip) )+
             ( '~/apps/%s/results/*' % exp_name ),
             'results/raw/%s/v%d/' % (exp_name, index)

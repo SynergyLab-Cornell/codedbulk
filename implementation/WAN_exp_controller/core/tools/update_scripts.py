@@ -58,7 +58,7 @@ def update_scripts():
             if os.path.exists('deployment/core/%s' % script):
                 local_folder = 'core'
             scp = Popen(['scp', '-i', 
-                'keys/aws_%d.pem' % index, '-r',
+                'keys/node_%d.pem' % index, '-r',
                 'deployment/%s/%s' % (local_folder.lower(), script),
                 ( '%s@%s:' % (server_account, ip) )+
                 ( '~/nc_%s/%s' % (network_name.lower(), script) )

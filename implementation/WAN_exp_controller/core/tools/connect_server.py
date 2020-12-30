@@ -25,7 +25,7 @@ server_ips = load_server_ips()
 def connect_server(server_number):
     for index, ip in enumerate(server_ips):
         if index == server_number:
-            command = 'ssh -i keys/aws_%d.pem %s@%s' % (server_number, server_account, ip)
+            command = 'ssh -i keys/node_%d.pem %s@%s' % (server_number, server_account, ip)
             print(command)
             os.system(command)
             break
