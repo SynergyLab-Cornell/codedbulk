@@ -177,6 +177,8 @@ def ip_list_generator(network_name):
     with open('tmp/%s_remote_ips.json' % network_name,'w') as fips:
         json.dump(remote_ips,fips)
 
+    return len(server_ips)
+
 def generate_exp(network_name):
     network_name = network_name.lower()
     total_nodes = 0
@@ -184,11 +186,18 @@ def generate_exp(network_name):
 
     print('Generate codes for experiment \'%s\'' % network_name)
     # generate topology files
-    ip_list_generator(network_name)
-    shutil.move('tmp/%s.cc_part' % network_name, 'src/controller/settings/topology/%s.cc_part' % network_name)
+    total_nodes = ip_list_generator(network_name)
 
-    #TODO
     # generate codes
+    with open('tmp/%s_auto_gen.sh' % network_name,'w') as fout:
+        fout.write('#!/bin/bash\n./auto_gen.sh %s %d' % (network_name,total_nodes))
+    with open('tmp/traffic-gen-%s.cc' % network_name,'w') as fout:
+        fout.write("""/***********
+* Generate %s
+***********/
+#define TOPOLOGY_NAME %s
+#define WORKLOAD_PREFIX %s
+#include "traffic-gen-mixed.cc_part" """ % (network_name, network_name, network_name))
 
     print('Generating WAN controller for experiment \'%s\' under WAN_exp_controller/exp_%s' % (network_name, network_name))
     # create root folder
@@ -201,6 +210,11 @@ def generate_exp(network_name):
     os.mkdir('error_logs')
     os.mkdir('keys')
     os.mkdir('results')
+
+    os.mkdir('codes')
+    shutil.move('../../tmp/%s.cc_part' % network_name, 'codes/%s.cc_part' % network_name)
+    shutil.move('../../tmp/%s_auto_gen.sh' % network_name, 'codes/%s_auto_gen.sh' % network_name)
+    shutil.move('../../tmp/traffic-gen-%s.cc' % network_name, 'codes/traffic-gen-%s.cc' % network_name)
 
     # create symbolic links
     os.symlink('../core/common_settings.py','common_settings.py')
@@ -222,5 +236,5 @@ def generate_exp(network_name):
 if __name__ == '__main__':
     network_name = input('Enter the network name of the experiment: ')
     if network_name == '':
-        network_name = 'default'
+        network_name = 'dummy'
     generate_exp(network_name)
