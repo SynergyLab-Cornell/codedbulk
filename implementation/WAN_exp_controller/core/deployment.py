@@ -18,9 +18,31 @@
 import sys
 
 def deploy_common():
+    # files:
+    # apps/shared/local_socket/
+    # controller/auto_gen.sh
+    # controller/build/
+    # controller/executable/
+    # controller/Makefile
+    # controller/settings/controller_setup.cc_part
+    # controller/settings/topology/topology_macros.h
+    # controller/settings/traffic/*
+    # controller/sources/*
+    # multicast_agent/build/
+    # multicast_agent/Makefile
+    # multicast_agent/sources/*
+    # proxy/build/
+    # proxy/Makefile
+    # proxy/sources/*
+    # shared/build/
+    # shared/Makefile
+    # shared/sources/*
     pass
 
 def deploy(exp):
+    # controller/main/traffic-gen-<exp>.cc
+    # controller/settings/topology/<exp>.cc_part
+    # controller/workloads/<exp>-*
     pass
 
 if __name__ == '__main__':

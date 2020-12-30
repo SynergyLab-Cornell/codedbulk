@@ -25,14 +25,14 @@ server_ips = load_server_ips()
 
 commands = [
 # setup commands
-#'sudo yum install git gcc-c++ tc gdb -y\n',
-#'echo \"net.ipv4.tcp_fin_timeout=10\" | sudo tee -a /etc/sysctl.conf\n',
-#'echo \"net.ipv4.tcp_tw_reuse=1\" | sudo tee -a /etc/sysctl.conf\n',
-#'sudo sysctl -p\n',
-#'ln -rs nc_%s/apps .\n' % network_name.lower(),
-'rm -rf nc_%s/.git*\n' % network_name.lower(),
+'sudo yum install git gcc-c++ tc gdb -y\n',
+'echo \"net.ipv4.tcp_fin_timeout=10\" | sudo tee -a /etc/sysctl.conf\n',
+'echo \"net.ipv4.tcp_tw_reuse=1\" | sudo tee -a /etc/sysctl.conf\n',
+'sudo sysctl -p\n',
+'ln -rs codedbulk_%s/apps .\n' % network_name.lower(),
+'rm -rf codedbulk_%s/.git*\n' % network_name.lower(),
 # recompile
-'cd nc_%s/shared\n' % network_name.lower(),
+'cd codedbulk_%s/shared\n' % network_name.lower(),
 'make clean\n',
 'cd ../proxy\n',
 'make clean\n',
