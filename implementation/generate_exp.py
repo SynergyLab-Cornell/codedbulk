@@ -15,7 +15,7 @@
 #
 # Author:  Shih-Hao Tseng (shtseng@caltech.edu)
 #
-import json,csv
+import os,json,csv,shutil
 
 def ip_list_generator(network_name):
     server_public_ips = {}
@@ -24,14 +24,14 @@ def ip_list_generator(network_name):
     server_ips = {}
 
     try:
-        with open('data/%s_public_ips.csv' % network_name,'r') as fpub:
+        with open('settings/%s/public_ips.csv' % network_name,'r') as fpub:
             csv_reader = csv.reader(fpub, delimiter=',')
             line_count = 0
             for row in csv_reader:
                 if line_count == 0:
                     line_count += 1
                     continue
-                
+
                 server_public_ips[row[0]] = []
                 for ip in row[1:]:
                     if ip != '':
@@ -39,12 +39,12 @@ def ip_list_generator(network_name):
                 
                 line_count += 1
     except:
-        print('error: data/%s_public_ips.csv does not exist' % network_name)
+        print('error: settings/%s/public_ips.csv does not exist' % network_name)
         return
 
     try:
         server_private_ips = {}
-        with open('data/%s_private_ips.csv' % network_name,'r') as fpriv:
+        with open('settings/%s/private_ips.csv' % network_name,'r') as fpriv:
             csv_reader = csv.reader(fpriv, delimiter=',')
             line_count = 0
             for row in csv_reader:
@@ -72,8 +72,8 @@ def ip_list_generator(network_name):
         server_private_ips = None
     
     # generate the topology.cc_part
-    with open('results/%s.cc_part' % network_name,'w') as fcc:
-        fcc.write('/* Author:  Shih-Hao Tseng (st688@cornell.edu) */\n')
+    with open('tmp/%s.cc_part' % network_name,'w') as fcc:
+        fcc.write('/* Author:  Shih-Hao Tseng (shtseng@caltech.edu) */\n')
         fcc.write('#ifdef __TOPOLOGY_MACROS__\n\n')
         
         total_nodes = len(server_public_ips.keys())
@@ -82,7 +82,7 @@ def ip_list_generator(network_name):
 
         try:
             # include memo if there is any
-            with open('data/%s_memo' % network_name,'r') as fmemo:
+            with open('settings/%s/memo' % network_name,'r') as fmemo:
                 for line in fmemo:
                     fcc.write('// %s' % line)
             fcc.write('\n')
@@ -135,7 +135,7 @@ def ip_list_generator(network_name):
             fcc.write('/* link the switches */\\\n')
             fcc.write('/* private to public */\\\n')
 
-            with open('data/%s_links.csv' % network_name,'r') as flink:
+            with open('settings/%s/links.csv' % network_name,'r') as flink:
                 csv_reader = csv.reader(flink, delimiter=',')
                 line_count = 0
                 head = []
@@ -170,13 +170,54 @@ def ip_list_generator(network_name):
         pub_ip = server_public_ips[key][0]
         server_ips[pub_ip] = server_private_ips[key]
 
-    with open('results/server_ips.json','w') as fips:
+    with open('tmp/server_ips.json','w') as fips:
         json.dump(server_ips,fips)
 
     # save the remote_ips
-    with open('results/%s_remote_ips.json' % network_name,'w') as fips:
+    with open('tmp/%s_remote_ips.json' % network_name,'w') as fips:
         json.dump(remote_ips,fips)
 
-if __name__ == '__main__':
-    network_name = input('the network name (file data/<network name>_public_ips.csv must exist): ')
+def generate_exp(network_name):
+    network_name = network_name.lower()
+    total_nodes = 0
+    load = '0.1'
+
+    print('Generate codes for experiment \'%s\'' % network_name)
+    # generate topology files
     ip_list_generator(network_name)
+    shutil.move('tmp/%s.cc_part' % network_name, 'src/controller/settings/topology/%s.cc_part' % network_name)
+
+    print('Generating WAN controller for experiment \'%s\' under WAN_exp_controller/exp_%s' % (network_name, network_name))
+    # create root folder
+    # delete the existing one
+    shutil.rmtree('WAN_exp_controller/exp_%s' % network_name, ignore_errors=True)
+    os.mkdir('WAN_exp_controller/exp_%s' % network_name)
+    os.chdir('WAN_exp_controller/exp_%s' % network_name)
+
+    # create subfolders
+    os.mkdir('error_logs')
+    os.mkdir('keys')
+    os.mkdir('results')
+
+    # create symbolic links
+    os.symlink('../core/common_settings.py','common_settings.py')
+    os.symlink('../core/deployment.py','deployment.py')
+    os.symlink('../core/load_exp_settings.py','load_exp_settings.py')
+    os.symlink('../core/local_controller.py','local_controller.py')
+
+    # create files
+    with open('server_infromation.py','w') as fout:
+        fout.write('#!/usr/bin/env python\nserver_account=\'\'\nserver_passwd=\'\'')
+    with open('exp_settings.json','w') as fout:
+        fout.write('{ "network_name": "%s", "total_nodes": %d, "start_from_exp": "%s-1-3-interactive-%s-0" }' 
+        % (network_name, total_nodes, network_name, load))
+    
+    # move settings
+    shutil.move('../../tmp/%s_remote_ips.json' % network_name, '%s_remote_ips.json' % network_name)
+    shutil.move('../../tmp/server_ips.json', 'server_ips.json')
+
+if __name__ == '__main__':
+    network_name = input('Enter the network name of the experiment: ')
+    if network_name == '':
+        network_name = 'default'
+    generate_exp(network_name)
