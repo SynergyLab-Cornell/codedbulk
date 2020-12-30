@@ -38,11 +38,10 @@ commands = [
 'make clean\n',
 'cd ../multicast_agent\n',
 'make clean\n',
-#'cd ../controller\n',
-#'rm -rf workloads/workloads\n',
-#'make clean\n',
-#'make -j8\n',
-#'./%s_auto_gen.sh\n' % network_name,
+'cd ../controller\n',
+'make clean\n',
+'make -j8\n',
+'./%s_auto_gen.sh\n' % network_name,
 'exit\n'
 ]
 

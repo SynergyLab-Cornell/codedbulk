@@ -43,6 +43,7 @@ def deploy(exp):
     # controller/main/traffic-gen-<exp>.cc
     # controller/settings/topology/<exp>.cc_part
     # controller/workloads/<exp>-*
+    # controller/<exp>_auto_gen.sh
     pass
 
 if __name__ == '__main__':
