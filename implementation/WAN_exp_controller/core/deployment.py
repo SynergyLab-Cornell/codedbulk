@@ -22,7 +22,7 @@ from subprocess import Popen, PIPE, STDOUT
 network_name = load_network_name()
 server_ips = load_server_ips()
 
-send_files = [
+common_files = [
     'apps/shared/local_socket/',
     'controller/auto_gen.sh',
     'controller/build/',
@@ -41,28 +41,78 @@ send_files = [
     'shared/build/',
     'shared/Makefile',
     'shared/sources/*',
-    'controller/main/traffic-gen-%s.cc' % network_name,
-    'controller/settings/topology/%s.cc_part' % network_name,
-    'controller/workloads/%s-*' % network_name,
-    'controller/%s_auto_gen.sh' % network_name,
+]
+network_specific_files = [
+    '%s_auto_gen.sh',
+    'main/traffic-gen-%s.cc',
+    'settings/topology/%s.cc_part',
 ]
 
 def deploy():
-    for line in send_files:
+    for line in common_files:
         print(line)
 
-    '''
     parallel = []
     for index, ip in enumerate(server_ips.keys()):
-        scp = Popen(['ssh', '-T', '-i', 
-            'keys/node_%d.pem' % index,
-            '%s@%s' % (server_account, ip)
-        ], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-        print('server %d connected' % index)
-        parallel.append(scp)
-    for scp in parallel:
-        scp.wait()
-    '''
+        # send common files
+        for fsend in common_files:
+            command = [
+                'scp', '-r', '-i', 'keys/node_%d.pem' % index,
+                '../../src/%s' % fsend,
+                ( '%s@%s:' % (server_account, ip) ) +
+                ( '~/codedbulk_%s/%s' % (network_name, fsend) )
+            ]
+            print(command)
+            #scp = Popen(command, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+            #parallel.append(scp)
+
+        # send network specific files
+        for fsend in network_specific_files:
+            command = [
+                'scp', '-r', '-i', 'keys/node_%d.pem' % index,
+                'codes/%s' % (fsend % network_name),
+                ( '%s@%s:' % (server_account, ip) ) +
+                ( '~/codedbulk_%s/controller/%s' % (network_name, fsend % network_name) )
+            ]
+            print(command)
+            #scp = Popen(command, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+            #parallel.append(scp)
+        
+        # send workloads
+        #TODO
+        #command = [
+        #    'scp', '-r', '-i', 'keys/node_%d.pem' % index,
+        #    'codes/workloads/load-*',
+        #    ( '%s@%s:' % (server_account, ip) ) +
+        #    ( '~/codedbulk_%s/controller/workloads/%s-*' % (network_name, network_name) )
+        #]
+        #print(command)
+        #scp = Popen(command, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        #parallel.append(scp)
+
+        # send control scripts
+        command = [
+            'scp', '-r', '-i', 'keys/node_%d.pem' % index,
+            'common_settings.py',
+            ( '%s@%s:' % (server_account, ip) ) +
+            ( '~/codedbulk_%s/WAN_exp_controller/common_settings.py' % network_name )
+        ]
+        print(command)
+        #scp = Popen(command, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        #parallel.append(scp)
+
+        command = [
+            'scp', '-r', '-i', 'keys/node_%d.pem' % index,
+            '../core/remote_server.py',
+            ( '%s@%s:' % (server_account, ip) ) +
+            ( '~/codedbulk_%s/WAN_exp_controller/remote_server.py' % network_name )
+        ]
+        print(command)
+        #scp = Popen(command, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        #parallel.append(scp)
+
+    #for scp in parallel:
+    #    scp.wait()
 
 if __name__ == '__main__':
     deploy()

@@ -212,9 +212,13 @@ def generate_exp(network_name):
     os.mkdir('results')
 
     os.mkdir('codes')
-    shutil.move('../../tmp/%s.cc_part' % network_name, 'codes/%s.cc_part' % network_name)
+    os.mkdir('codes/main/')
+    os.makedirs('codes/settings/topology/', exist_ok=True)
+
     shutil.move('../../tmp/%s_auto_gen.sh' % network_name, 'codes/%s_auto_gen.sh' % network_name)
-    shutil.move('../../tmp/traffic-gen-%s.cc' % network_name, 'codes/traffic-gen-%s.cc' % network_name)
+    shutil.move('../../tmp/traffic-gen-%s.cc' % network_name, 'codes/main/traffic-gen-%s.cc' % network_name)
+    shutil.move('../../tmp/%s.cc_part' % network_name, 'codes/settings/topology/%s.cc_part' % network_name)
+    os.symlink('../../../settings/%s/workloads' % network_name,'codes/workloads')
 
     # create symbolic links
     os.symlink('../core/common_settings.py','common_settings.py')
