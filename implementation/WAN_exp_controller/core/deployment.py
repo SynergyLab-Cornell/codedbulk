@@ -15,40 +15,54 @@
 #
 # Author:  Shih-Hao Tseng (shtseng@caltech.edu)
 #
-import sys
 from server_information import *
+from load_exp_settings import load_network_name, load_server_ips 
+from subprocess import Popen, PIPE, STDOUT
 
-def deploy_common():
-    # apps/shared/local_socket/
-    # controller/auto_gen.sh
-    # controller/build/
-    # controller/executable/
-    # controller/Makefile
-    # controller/settings/controller_setup.cc_part
-    # controller/settings/topology/topology_macros.h
-    # controller/settings/traffic/*
-    # controller/sources/*
-    # multicast_agent/build/
-    # multicast_agent/Makefile
-    # multicast_agent/sources/*
-    # proxy/build/
-    # proxy/Makefile
-    # proxy/sources/*
-    # shared/build/
-    # shared/Makefile
-    # shared/sources/*
-    pass
+network_name = load_network_name()
+server_ips = load_server_ips()
 
-def deploy(exp):
-    deploy_common()
-    # controller/main/traffic-gen-<exp>.cc
-    # controller/settings/topology/<exp>.cc_part
-    # controller/workloads/<exp>-*
-    # controller/<exp>_auto_gen.sh
-    pass
+send_files = [
+    'apps/shared/local_socket/',
+    'controller/auto_gen.sh',
+    'controller/build/',
+    'controller/executable/',
+    'controller/Makefile',
+    'controller/settings/controller_setup.cc_part',
+    'controller/settings/topology/topology_macros.h',
+    'controller/settings/traffic/*',
+    'controller/sources/*',
+    'multicast_agent/build/',
+    'multicast_agent/Makefile',
+    'multicast_agent/sources/*',
+    'proxy/build/',
+    'proxy/Makefile',
+    'proxy/sources/*',
+    'shared/build/',
+    'shared/Makefile',
+    'shared/sources/*',
+    'controller/main/traffic-gen-%s.cc' % network_name,
+    'controller/settings/topology/%s.cc_part' % network_name,
+    'controller/workloads/%s-*' % network_name,
+    'controller/%s_auto_gen.sh' % network_name,
+]
+
+def deploy():
+    for line in send_files:
+        print(line)
+
+    '''
+    parallel = []
+    for index, ip in enumerate(server_ips.keys()):
+        scp = Popen(['ssh', '-T', '-i', 
+            'keys/node_%d.pem' % index,
+            '%s@%s' % (server_account, ip)
+        ], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        print('server %d connected' % index)
+        parallel.append(scp)
+    for scp in parallel:
+        scp.wait()
+    '''
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        deploy('default')
-    else:
-        deploy(sys.argv[1])
+    deploy()

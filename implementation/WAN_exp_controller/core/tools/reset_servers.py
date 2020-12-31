@@ -42,14 +42,6 @@ def wait_and_print(process):
         print(output.decode('utf-8'))
 
 def reset_servers():
-    # read server_ips from file
-    global server_ips
-    try:
-        with open('server_ips.json','r') as fin:
-            server_ips = json.load(fin)
-    except:
-        print('server_ips.json does not exist')
-
     parallel = []
     for index, ip in enumerate(server_ips.keys()):
         ssh = Popen(['ssh', '-T', '-i', 

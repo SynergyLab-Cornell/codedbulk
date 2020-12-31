@@ -34,4 +34,7 @@ Run
 and enter the network name to generate the WAN experiment and the controller under WAN_exp_controller/exp_\<network name\>.
 
 ## 4. Deployment
-Modify server_information.py in core
+Modify common_settings.py in core
+
+In exp_\<network name\>:
+Modify server_information.py 
