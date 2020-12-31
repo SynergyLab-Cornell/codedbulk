@@ -221,11 +221,10 @@ def generate_exp(network_name):
     os.symlink('../core/deployment.py','deployment.py')
     os.symlink('../core/load_exp_settings.py','load_exp_settings.py')
     os.symlink('../core/local_controller.py','local_controller.py')
+    os.symlink('../core/server_information.py','server_information.py')
     os.symlink('../core/tools','tools')
 
     # create files
-    with open('server_information.py','w') as fout:
-        fout.write('#!/usr/bin/env python\nserver_account=\'\'\nserver_passwd=\'\'')
     with open('exp_settings.json','w') as fout:
         fout.write('{ "network_name": "%s", "total_nodes": %d, "start_from_exp": "%s-1-3-interactive-%s-0" }' 
         % (network_name, total_nodes, network_name, load))
