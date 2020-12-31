@@ -16,6 +16,7 @@
 # Author:  Shih-Hao Tseng (shtseng@caltech.edu)
 #
 import sys
+from server_information import *
 
 def deploy_common():
     # apps/shared/local_socket/
