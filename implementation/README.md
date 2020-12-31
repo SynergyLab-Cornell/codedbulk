@@ -8,6 +8,7 @@ This file explains how to run the c++ implementation of the network coding proje
 2. Experiment Setup
 3. WAN Experiment Generation
 4. Deployment
+5. Run Experiments
 
 ## 1. Requirements
 
@@ -22,7 +23,7 @@ The WAN experiment controller requires Python 3.
 To create a CodedBulk experiment, add a folder under the folder 'settings' with a desired name (referred as network name in the following context).
 
 link.csv describes the network topology.
-public_ips and private_ips are the public/private ips held by each interface at each node.
+public_ips.csv and private_ips.csv are the public/private ips held by each interface at each node.
 The workload describes the interactive traffic, formatted as described in settings/format.
 
 ## 3. WAN Experiment Generation
@@ -34,7 +35,19 @@ Run
 and enter the network name to generate the WAN experiment and the controller under WAN_exp_controller/exp_\<network name\>.
 
 ## 4. Deployment
-Modify common_settings.py in core
 
-In exp_\<network name\>:
-Modify server_information.py 
+To deploy the experiment codes to run on servers, modify common_settings.py and server_information.py in WAN_exp_controller/core, and put the server ssh key files in WAN_exp_controller/exp_\<network name\>. Name each key file "node_\<server number\>.pem" where the server number is defined as in link.csv/public_ips.csv/private_ips.csv.
+
+Then go into the folder WAN_exp_controller/exp_\<network name\> and run
+```
+    python deployment.py
+```
+to deploy the experiments to the servers.
+
+## 5. Run Experiments
+
+In the folder WAN_exp_controller/exp_\<network name\>, run
+```
+    python local_controller.py
+```
+type "rw" to run the WAN experiments.
