@@ -28,7 +28,7 @@ operator << (VirtualLink::VirtualLinkInputPaths& map, const uint32_t& path_id)
 int
 VirtualLink::VirtualLinkInputPaths::operator[] (uint32_t path_id) const
 {
-  // it would be fastere to do linear search when the array is small
+  // it would be faster to do linear search when the array is small
   for (int i = 0; i < _size; ++i) {
     if(_path_ids[i] == path_id) {
       return i;
@@ -137,7 +137,7 @@ VirtualLink::listMap (std::ostream& os) const
 {
   os << "map: " << std::dec;
   for(int i = 0; i < _input_paths._size; ++i) {
-    os << _input_paths[i] << " ";    
+    os << _input_paths._path_ids[i] << " ";
   }
   os << "-> ";
   for(int i = 0; i < _output_paths._size; ++i) {
