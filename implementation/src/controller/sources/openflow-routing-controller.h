@@ -53,7 +53,7 @@ public:
   void EstablishPath (CodedBulkUnicastPath& path, bool encode);
   void EstablishPath (Ptr<CodedBulkUnicastPath>& path, bool encode);
 
-  void AddCodedBulkEncoderAt (VirtualLink* encode_map, int node);
+  void AddCodedBulkEncoderAt (VirtualLink* encode_link, int node);
   void AddCodedBulkDecoderAt (VirtualLink* decode_basis_map, int node);
 
   std::map<int, std::list<VirtualLink*> > m_all_codecs;

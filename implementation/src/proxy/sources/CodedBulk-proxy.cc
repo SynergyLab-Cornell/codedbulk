@@ -145,7 +145,7 @@ CodedBulkProxy::ReleaseRecv (bool simple_forward, void* temp_pointer)
     recv->_counter_lock.unlock();
   } else {
     CodedBulkTask* task = (CodedBulkTask*)temp_pointer;
-    VirtualLink* code_map = std::move(task->_code_map);
+    VirtualLink* virtual_link = std::move(task->_virtual_link);
     CodedBulkInput* received_inputs[MAX_CODEC_INPUT_SIZE];
     for(int i = 0; i < MAX_CODEC_INPUT_SIZE; ++i) {
       received_inputs[i] = std::move(task->_received_inputs[i]);
@@ -153,13 +153,13 @@ CodedBulkProxy::ReleaseRecv (bool simple_forward, void* temp_pointer)
     // delete now
     task->Delete();
     // the output is finished
-    for(int i = 0; i < code_map->getColDimension(); ++i) {
+    for(int i = 0; i < virtual_link->getColDimension(); ++i) {
       received_inputs[i]->_check_lock.lock();
       received_inputs[i]->decrementCounter();
       if(received_inputs[i]->hasFinished()) {
         received_inputs[i]->_check_lock.unlock();
         received_inputs[i]->Delete();
-        recv_peer = (TcpReceivePeer*)code_map->_recv_peers[i];
+        recv_peer = (TcpReceivePeer*)virtual_link->_recv_peers[i];
         recv = (CodedBulk_recv_info*)recv_peer->m_recv_info;
         recv->_counter_lock.lock();
         --recv->_counter;

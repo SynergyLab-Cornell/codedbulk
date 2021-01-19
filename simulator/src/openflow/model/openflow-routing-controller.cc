@@ -452,10 +452,10 @@ OpenFlowRoutingController::EstablishPath (Ptr<CodedBulkUnicastPath>& path, uint8
 } // OpenFlowRoutingController::EstablishPath
 
 void
-OpenFlowRoutingController::AddCodedBulkEncoderAt (VirtualLink* encode_map, int node)
+OpenFlowRoutingController::AddCodedBulkEncoderAt (VirtualLink* encode_link, int node)
 {
   if( (node >= 0) && (node < (int)m_switches_vector.size()) ) {
-    m_switches_vector[node]->GetCodecManager()->addCodedBulkCodec(encode_map);
+    m_switches_vector[node]->GetCodecManager()->addCodedBulkCodec(encode_link);
   }
 }
 

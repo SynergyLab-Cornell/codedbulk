@@ -113,7 +113,7 @@ public:
   void** _send_peers;
   void** _recv_peers;
 
-  std::mutex _codemap_lock;
+  std::mutex _virtual_link_lock;
 };
 
 } // namespace ns3

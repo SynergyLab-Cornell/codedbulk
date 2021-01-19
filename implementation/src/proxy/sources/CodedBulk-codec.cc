@@ -91,27 +91,27 @@ CodedBulkCodec::setStoreAndForward (bool store_and_forward) {
 
 CodedBulkCodec::CodedBulkCodec(CodedBulkCodecManager* codec_manager) :
   _codec_manager(codec_manager),
-  _code_map(nullptr)
+  _virtual_link(nullptr)
 {
     resetCodec();
 }
 
-CodedBulkCodec::CodedBulkCodec(CodedBulkCodecManager* codec_manager, VirtualLink* code_map) :
+CodedBulkCodec::CodedBulkCodec(CodedBulkCodecManager* codec_manager, VirtualLink* virtual_link) :
   _codec_manager(codec_manager),
-  _code_map(nullptr)
+  _virtual_link(nullptr)
 {
     resetCodec();
-    assignVirtualLink(code_map);
+    assignVirtualLink(virtual_link);
     initCodec();
 }
 
 CodedBulkCodec::CodedBulkCodec(CodedBulkCodecManager* codec_manager, CodedBulkCodec& codec) :
   _codec_manager(codec_manager),
-  _code_map(nullptr)
+  _virtual_link(nullptr)
 {
     resetCodec();
-    assignVirtualLink(codec._code_map);
-    codec._code_map = nullptr;
+    assignVirtualLink(codec._virtual_link);
+    codec._virtual_link = nullptr;
     initCodec();
 }
 
@@ -121,7 +121,7 @@ CodedBulkCodec::~CodedBulkCodec() {
 
 CodeVector
 CodedBulkCodec::coding (const CodeVector& input) const {
-    return (*_code_map) * input;
+    return (*_virtual_link) * input;
 }
 
 bool
@@ -145,26 +145,26 @@ CodedBulkCodec::coding (
     uint8_t* output_buffer = nullptr;
     // to be multithread safe -> do memory handling ourselves
     CodedBulkOutput* output = nullptr;
-    notifier->_num_not_yet_output = (uint32_t)_code_map->getRowDimension();
+    notifier->_num_not_yet_output = (uint32_t)_virtual_link->getRowDimension();
     notifier->_task = task;
-    for(int pkt = 0; pkt < _code_map->getRowDimension(); ++pkt) {
+    for(int pkt = 0; pkt < _virtual_link->getRowDimension(); ++pkt) {
         output = alloc_output->New();
         output->_output_packet = alloc_packet->New();
         output_buffer = output->_output_packet->GetBuf ();
         for(size_t pos = 0; pos < task->_max_packet_length; ++pos) {
             GF256 encode_unit = 0;
-            for(int i = 0; i < _code_map->getColDimension(); ++i) {
-                encode_unit += (*_code_map)[pkt][i]*(received_packet[i][pos]);
+            for(int i = 0; i < _virtual_link->getColDimension(); ++i) {
+                encode_unit += (*_virtual_link)[pkt][i]*(received_packet[i][pos]);
             }
             output_buffer[pos] = *encode_unit;
         }
         output->_output_packet->SetSize(task->_max_packet_length);
         output->_to_send_peer = nullptr;
-        if(_code_map->_send_peers != nullptr) {
-            output->_to_send_peer = _code_map->_send_peers[pkt];
+        if(_virtual_link->_send_peers != nullptr) {
+            output->_to_send_peer = _virtual_link->_send_peers[pkt];
         }
-        // notice that _code_map->_send_peers[pkt] is not necessarily non nullptr
-        output->_path_id = _code_map->_output_paths[pkt];
+        // notice that _virtual_link->_send_peers[pkt] is not necessarily non nullptr
+        output->_path_id = _virtual_link->_output_paths[pkt];
         output->_serial_number = task->_serial_number;
         output->_notifier = notifier;
         if (__store_and_foward) {
@@ -206,7 +206,7 @@ CodedBulkCodec::receiveInput(
     MemoryAllocator<CodedBulkTask>*      alloc_task,
     MemoryAllocator<CodedBulkReadyTask>* alloc_ready_task
 ) {
-    int input_id = _code_map->_input_paths[path_id];
+    int input_id = _virtual_link->_input_paths[path_id];
     if( input_id == -1 ) {
         // no mapping exists
         return -1;
@@ -221,15 +221,15 @@ CodedBulkCodec::receiveInput(
 
     if( result.second ) {
         task = alloc_task->New();
-        task->initialize(serial_number, _code_map->getColDimension());
-        task->_code_map = _code_map;
+        task->initialize(serial_number, _virtual_link->getColDimension());
+        task->_virtual_link = _virtual_link;
         result.first->second = task;
     } else {
         task = result.first->second;
     }
 
     if( task->_received_inputs[input_id] == nullptr ) {
-        if (task->_num_received_inputs == _code_map->getColDimension() - 1)
+        if (task->_num_received_inputs == _virtual_link->getColDimension() - 1)
         {
             // the task is ready
             _tasks.erase (result.first);
@@ -268,7 +268,7 @@ CodedBulkCodec::receiveInput(
 
 CodedBulkCodec&
 CodedBulkCodec::operator=(const CodedBulkCodec& codec) {
-    _code_map = codec._code_map;
+    _virtual_link = codec._virtual_link;
     return *this;
 }
 
@@ -284,32 +284,32 @@ CodedBulkCodec::timeout (uint32_t serial_number)
 void
 CodedBulkCodec::listCodeMatrix (std::ostream& os) const
 {
-    _code_map->listMatrix(os);
+    _virtual_link->listMatrix(os);
 }
 
 void
 CodedBulkCodec::listVirtualLink    (std::ostream& os) const
 {
-    _code_map->listMap(os);
+    _virtual_link->listMap(os);
 }
 
 void
 CodedBulkCodec::resetCodec(void) {
     _codec_lock.lock();
-    if(_code_map != nullptr) {
-        delete _code_map;
+    if(_virtual_link != nullptr) {
+        delete _virtual_link;
     }
-    _code_map = nullptr;
+    _virtual_link = nullptr;
     _tasks.clear();
     _codec_lock.unlock();
 }
 
 void
-CodedBulkCodec::assignVirtualLink (VirtualLink* code_map) {
-    if(_code_map != nullptr) {
-        delete _code_map;
+CodedBulkCodec::assignVirtualLink (VirtualLink* virtual_link) {
+    if(_virtual_link != nullptr) {
+        delete _virtual_link;
     }
-    _code_map = code_map;
+    _virtual_link = virtual_link;
 }
 
 void
@@ -321,8 +321,8 @@ void
 CodedBulkCodec::InsertSendPeer(uint32_t path_id, void* send_peer)
 {
     _codec_lock.lock();
-    if(_code_map != nullptr) {
-        _code_map->InsertSendPeer(path_id,send_peer);
+    if(_virtual_link != nullptr) {
+        _virtual_link->InsertSendPeer(path_id,send_peer);
     }
     _codec_lock.unlock();
 }
@@ -331,8 +331,8 @@ void
 CodedBulkCodec::InsertRecvPeer(uint32_t path_id, void* recv_peer)
 {
     _codec_lock.lock();
-    if(_code_map != nullptr) {
-        _code_map->InsertRecvPeer(path_id,recv_peer);
+    if(_virtual_link != nullptr) {
+        _virtual_link->InsertRecvPeer(path_id,recv_peer);
     }
     _codec_lock.unlock();
 }

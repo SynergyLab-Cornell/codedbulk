@@ -494,7 +494,7 @@ CodedBulkController::GenerateAllFiles (void)
 
   // setup proxy paths
   for(int i = 0; i < num_proxies; ++i) {
-    SetupCodemaps(ssproxy_modes[i][2],m_controller->m_all_codecs[i]);
+    SetupVirtualLinks(ssproxy_modes[i][2],m_controller->m_all_codecs[i]);
   }
   // paths
   for(std::list<Ptr<CodedBulkTraffic> >::iterator
@@ -593,7 +593,7 @@ CodedBulkController::GenerateAllFiles (void)
 
   // setup steiner tree paths
   for(int i = 0; i < num_proxies; ++i) {
-    SetupCodemaps(ssproxy_modes[i][3],m_controller->m_all_codecs[i]);
+    SetupVirtualLinks(ssproxy_modes[i][3],m_controller->m_all_codecs[i]);
   }
   // paths
   for(std::list<Ptr<CodedBulkTraffic> >::iterator
@@ -786,43 +786,43 @@ CodedBulkController::SetupProxy(std::ofstream& fout, std::vector<std::string>& a
   fout <<
 "  Ptr<CodedBulkCodecManager> codec_manager = Create<CodedBulkCodecManager> ();\n" << 
 "  codec_manager->SetMaxNumWorker (10);\n" <<
-"  VirtualLink* code_map;\n";
+"  VirtualLink* virtual_link;\n";
 }
 
 void
-CodedBulkController::SetupCodemaps(std::stringstream& fout, std::list<VirtualLink*>& codemaps)
+CodedBulkController::SetupVirtualLinks(std::stringstream& fout, std::list<VirtualLink*>& virtual_links)
 {
   for(std::list<VirtualLink*>::iterator
-    it_c  = codemaps.begin();
-    it_c != codemaps.end();
+    it_c  = virtual_links.begin();
+    it_c != virtual_links.end();
     ++it_c
   ) {
     int row_dimension = (*it_c)->getRowDimension();
     int col_dimension = (*it_c)->getColDimension();
     fout << 
-"      code_map = new VirtualLink (" << row_dimension << "," << col_dimension << ");\n";
+"      virtual_link = new VirtualLink (" << row_dimension << "," << col_dimension << ");\n";
     for (int ri = 0; ri < row_dimension; ++ri) {
       for (int cj = 0; cj < col_dimension; ++cj) {
         fout << 
-"      (*code_map)[" << ri << "][" << cj << "] = " << (int) +(*(*it_c))[ri][cj] << ";\n";
+"      (*virtual_link)[" << ri << "][" << cj << "] = " << (int) +(*(*it_c))[ri][cj] << ";\n";
       }
     }
     fout << 
-"      code_map->_input_paths ";
+"      virtual_link->_input_paths ";
     for(int j = 0; j < (*it_c)->_input_paths._size; ++j) {
       fout << 
 " << " << (*it_c)->_input_paths._path_ids[j];
     }
 
     fout << 
-";\n      code_map->_output_paths";
+";\n      virtual_link->_output_paths";
     for(int j = 0; j < (*it_c)->_output_paths._size; ++j) {
       fout << 
 " << " << (*it_c)->_output_paths._path_ids[j];
     }
     fout << 
 ";\n" <<
-"      codec_manager->addCodedBulkCodec (code_map);\n";
+"      codec_manager->addCodedBulkCodec (virtual_link);\n";
   }
 }
 

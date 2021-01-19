@@ -127,7 +127,7 @@ CodedBulkCycleAwareCoding::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
     }
 
     //   2. if not, pick the first one and move all the paths to the node (greedy approach)
-    VirtualLink* encode_map = nullptr;
+    VirtualLink* encode_link = nullptr;
     if(current_node_id == -1) {
       current_node_id = paths_through_the_node_map.begin()->first;
 
@@ -141,13 +141,13 @@ CodedBulkCycleAwareCoding::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
           paths_through_the_node_map[*(path->_current_node)].remove(path);
 
           // add an identity code map
-          encode_map = new VirtualLink (1,1);
-          (*encode_map)[0][0] = 1;
-          encode_map->_input_paths  << path->_carrying_path_id;
-          encode_map->_output_paths << path->_path_id + 1;
+          encode_link = new VirtualLink (1,1);
+          (*encode_link)[0][0] = 1;
+          encode_link->_input_paths  << path->_carrying_path_id;
+          encode_link->_output_paths << path->_path_id + 1;
           path->_carrying_path_id = path->_path_id + 1;
 
-          m_controller->AddCodedBulkEncoderAt(encode_map,*(path->_current_node));
+          m_controller->AddCodedBulkEncoderAt(encode_link,*(path->_current_node));
 /*
           // setup a simple forward rule
           // -> don't work unless we know path->_carrying_path_id will only be used by one path here
@@ -206,7 +206,7 @@ CodedBulkCycleAwareCoding::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
 
       // found the paths, calculate the new code
       col_size = considered_paths.size();
-      encode_map = new VirtualLink (0,0);
+      encode_link = new VirtualLink (0,0);
       CodeVector u = *(considered_paths.front()->_path_code);
       CodeVector coder(col_size);
       coder.fillWith(0);
@@ -227,7 +227,7 @@ CodedBulkCycleAwareCoding::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
         if(considered_carrying_paths.find(current_carrying_path_id) == considered_carrying_paths.end()) {
           // the path has not yet been considered
           considered_carrying_paths.insert(current_carrying_path_id);
-          encode_map->_input_paths << current_carrying_path_id;
+          encode_link->_input_paths << current_carrying_path_id;
 
           CodeVector& a = *((*it_i)->_orthogonal_tester);
           CodeVector& x = *((*it_i)->_path_code);
@@ -289,13 +289,13 @@ CodedBulkCycleAwareCoding::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
       // resize the coder
       coder.forceResize(coder_index);
       // set up the size the code map
-      encode_map->singleRow(coder);
+      encode_link->singleRow(coder);
       // just output the first port, as the encoded packet will go to the same next hop
-      encode_map->_output_paths << carrying_path_id;
+      encode_link->_output_paths << carrying_path_id;
 
-      m_controller->AddCodedBulkEncoderAt(encode_map,current_node_id);
+      m_controller->AddCodedBulkEncoderAt(encode_link,current_node_id);
       // std::cout << "add encoder at node " << current_node_id << std::endl;
-      // encode_map->listMap(std::cout);
+      // encode_link->listMap(std::cout);
     }
 
     // finish this node

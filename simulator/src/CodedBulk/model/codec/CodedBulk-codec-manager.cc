@@ -91,8 +91,8 @@ CodedBulkCodecManager::addCodedBulkCodec() {
 }
 
 CodedBulkCodec*
-CodedBulkCodecManager::addCodedBulkCodec(VirtualLink* code_map) {
-    CodedBulkCodec* codec = new CodedBulkCodec (this,code_map);
+CodedBulkCodecManager::addCodedBulkCodec(VirtualLink* virtual_link) {
+    CodedBulkCodec* codec = new CodedBulkCodec (this,virtual_link);
     _CodedBulkCodecs.push_back(codec);
     return codec;
 }

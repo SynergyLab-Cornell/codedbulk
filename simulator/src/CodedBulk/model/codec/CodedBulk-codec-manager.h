@@ -87,7 +87,7 @@ public:
     void     clearCodedBulkCodecs ();
 
     CodedBulkCodec* addCodedBulkCodec();
-    CodedBulkCodec* addCodedBulkCodec(VirtualLink* code_map);
+    CodedBulkCodec* addCodedBulkCodec(VirtualLink* virtual_link);
 
     /*
      * The input packet is a raw data

@@ -81,7 +81,7 @@ private:
   void StoreAndForwardCheck(std::ofstream& fout);
 
   void SetupProxy(std::ofstream& fout, std::vector<std::string>& addresses);
-  void SetupCodemaps(std::stringstream& fout, std::list<VirtualLink*>& codemaps);
+  void SetupVirtualLinks(std::stringstream& fout, std::list<VirtualLink*>& virtual_links);
   void SetupProxySender(
     std::stringstream* modes,
     bool is_interactive,

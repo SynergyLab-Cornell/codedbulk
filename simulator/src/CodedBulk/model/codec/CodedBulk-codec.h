@@ -80,7 +80,7 @@ public:
 
     void cancelTimeoutEvent (void);
 
-    VirtualLink*  _code_map;
+    VirtualLink*  _virtual_link;
     uint32_t  _serial_number;
     CodedBulkInput*  _received_inputs[MAX_CODEC_INPUT_SIZE];    // 5 by 5 would be sufficient?
     int       _num_received_inputs;   // currently received packets
@@ -99,7 +99,7 @@ public:
 
     // the number of output packets that have not yet been sent
     uint32_t     _num_not_yet_output;
-    // the codemap to release the inports
+    // the virtual_link to release the inports
     CodedBulkTask*      _task;
 
     std::mutex   _notifier_lock;
@@ -132,7 +132,7 @@ class CodedBulkCodec : public SimpleRefCount<CodedBulkCodec> {
 public:
     static void setStoreAndForward (bool store_and_forward);
     CodedBulkCodec(CodedBulkCodecManager* codec_manager);
-    CodedBulkCodec(CodedBulkCodecManager* codec_manager, VirtualLink* code_map);
+    CodedBulkCodec(CodedBulkCodecManager* codec_manager, VirtualLink* virtual_link);
     CodedBulkCodec(CodedBulkCodecManager* codec_manager, CodedBulkCodec& codec);
     virtual ~CodedBulkCodec();
 
@@ -177,11 +177,11 @@ protected:
     CodedBulkCodecManager* _codec_manager;
     std::unordered_map<uint32_t, CodedBulkTask* > _tasks; // map serial number to the task
 
-    VirtualLink* _code_map;
+    VirtualLink* _virtual_link;
     Time     _timeout_period;  // the default value is defined in initCodec
 
     void resetCodec(void);
-    void assignVirtualLink (VirtualLink* code_map);
+    void assignVirtualLink (VirtualLink* virtual_link);
     void initCodec(void);
 
     std::mutex   _codec_lock;

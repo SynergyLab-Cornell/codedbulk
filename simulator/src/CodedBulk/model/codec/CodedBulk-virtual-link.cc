@@ -175,7 +175,7 @@ VirtualLink::ClearMapPaths (void)
 void
 VirtualLink::InsertSendPeer(uint32_t path_id, void* send_peer)
 {
-  _codemap_lock.lock();
+  _virtual_link_lock.lock();
   if(_send_peers == NULL) {
     void** tmp = new void*[_row_dimension];
     for(int i = 0; i < _row_dimension; ++i) {
@@ -189,13 +189,13 @@ VirtualLink::InsertSendPeer(uint32_t path_id, void* send_peer)
       break;
     }
   }
-  _codemap_lock.unlock();
+  _virtual_link_lock.unlock();
 }
 
 void
 VirtualLink::InsertRecvPeer(uint32_t path_id, void* recv_peer)
 {
-  _codemap_lock.lock();
+  _virtual_link_lock.lock();
   if(_recv_peers == NULL) {
     void** tmp = new void*[_col_dimension];
     for(int i = 0; i < _col_dimension; ++i) {
@@ -207,7 +207,7 @@ VirtualLink::InsertRecvPeer(uint32_t path_id, void* recv_peer)
   if(index != -1) {
     _recv_peers[index] = recv_peer;
   }
-  _codemap_lock.unlock();
+  _virtual_link_lock.unlock();
 }
 
 } // namespace ns3

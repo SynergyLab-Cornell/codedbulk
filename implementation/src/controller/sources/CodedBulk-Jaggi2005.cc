@@ -214,7 +214,7 @@ CodedBulkJaggi2005::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
     int next_hop_id = -1;
     int dst_id = -1;
     int col_size = 0;
-    VirtualLink* encode_map = nullptr;
+    VirtualLink* encode_link = nullptr;
     
     while(!paths_through_the_node.empty()) {
       // consider the paths going through the same edge
@@ -244,7 +244,7 @@ CodedBulkJaggi2005::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
 
       // found the paths, calculate the new code
       col_size = considered_paths.size();
-      encode_map = new VirtualLink (0,0);
+      encode_link = new VirtualLink (0,0);
       CodeVector u = *(considered_paths.front()->_path_code);
       CodeVector coder(col_size);
       coder.fillWith(0);
@@ -265,7 +265,7 @@ CodedBulkJaggi2005::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
         if(considered_carrying_paths.find(current_carrying_path_id) == considered_carrying_paths.end()) {
           // the path has not yet been considered
           considered_carrying_paths.insert(current_carrying_path_id);
-          encode_map->_input_paths << current_carrying_path_id;
+          encode_link->_input_paths << current_carrying_path_id;
 
           CodeVector& a = *((*it_i)->_orthogonal_tester);
           CodeVector& x = *((*it_i)->_path_code);
@@ -327,13 +327,13 @@ CodedBulkJaggi2005::GenerateCodes (Ptr<CodedBulkTraffic> traffic) {
       // resize the coder
       coder.forceResize(coder_index);
       // set up the size the code map
-      encode_map->singleRow(coder);
+      encode_link->singleRow(coder);
       // just output the first port, as the encoded packet will go to the same next hop
-      encode_map->_output_paths << carrying_path_id;
+      encode_link->_output_paths << carrying_path_id;
 
-      m_controller->AddCodedBulkEncoderAt(encode_map,*it_id);
+      m_controller->AddCodedBulkEncoderAt(encode_link,*it_id);
 //      std::cout << "add encoder at node " << *it_id << std::endl;
-//      encode_map->listMap(std::cout);
+//      encode_link->listMap(std::cout);
     }
   }
 
