@@ -74,7 +74,7 @@ CodeVector::listVector (std::ostream& os) const {
         if (i == 0){
             os << std::hex << +_vector[0];
         } else {
-            os << ", " << std::hex << +_vector[1];
+            os << ", " << std::hex << +_vector[i];
         }
     }
     os << " ]";
